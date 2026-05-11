@@ -428,7 +428,6 @@ setInterval(() => {
 {% endif %}
 
 
-{% if request.user.is_authenticated %}
 <script>
 function renderCalendar() {
     const now = new Date();
@@ -476,6 +475,5 @@ function renderCalendar() {
 }
 renderCalendar();
 </script>
-{% endif %}
 
 {% endblock %}
