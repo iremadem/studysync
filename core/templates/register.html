@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+ 
+{% block content %}
+ 
+<style>
+    .auth-input input, .auth-input select, .auth-input textarea {
+        width: 100%;
+        padding: 11px 16px;
+        border: 1.5px solid rgba(26,86,176,0.25);
+        border-radius: 10px;
+        font-size: 0.97rem;
+        color: #333;
+        background: #fafafa;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        outline: none;
+        margin-top: 4px;
+    }
+    .auth-input input:focus {
+        border-color: #1a56b0;
+        box-shadow: 0 0 0 3px rgba(26,86,176,0.12);
+        background: #fff;
+    }
+    .auth-input label {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #555;
+        letter-spacing: 0.3px;
+    }
+    .auth-input p { margin-bottom: 16px; }
+    .auth-input ul {
+        font-size: 0.82rem;
+        color: #888;
+        padding-left: 18px;
+        margin-top: 4px;
+        line-height: 1.6;
+    }
+</style>
+ 
+<div style="max-width: 480px; margin: 40px auto;">
+    <div style="
+        background: white;
+        border-radius: 20px;
+        padding: 44px 40px;
+        box-shadow: 0 10px 40px rgba(26,86,176,0.15);
+        border: 1.5px solid rgba(26,86,176,0.1);
+    ">
+        <div style="
+            width: 70px; height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1a56b0, #003087);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px auto;
+            box-shadow: 0 6px 20px rgba(26,86,176,0.35);
+            font-size: 2rem;
+        ">✨</div>
+ 
+        <h2 style="
+            font-family: 'Playfair Display', Georgia, serif;
+            font-style: italic;
+            font-size: 1.9rem;
+            text-align: center;
+            background: linear-gradient(135deg, #1a56b0, #003087);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        ">Create an Account</h2>
+ 
+        <p style="text-align:center; color:#aaa; font-size:0.9rem; margin-bottom:28px;">
+            Join 7TepeOnline and start studying smarter with others.
+        </p>
+ 
+        <div style="width:50px; height:3px; background:linear-gradient(135deg,#1a56b0,#003087); border-radius:2px; margin:0 auto 28px auto;"></div>
+ 
+        <form method="POST">
+            {% csrf_token %}
+            <div class="auth-input">
+                {{ form.as_p }}
+            </div>
+            <button type="submit" class="btn w-100 mt-2" style="
+                background: linear-gradient(135deg, #1a56b0, #003087);
+                color: white; border: none; border-radius: 12px;
+                padding: 13px; font-size: 1rem; font-weight: 500;
+                box-shadow: 0 4px 15px rgba(26,86,176,0.35);
+                transition: transform 0.2s, box-shadow 0.2s;
+            "
+            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(26,86,176,0.45)'"
+            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(26,86,176,0.35)'">
+                Create Account →
+            </button>
+        </form>
+ 
+        <p style="text-align:center; margin-top:22px; font-size:0.9rem; color:#888;">
+            Already have an account?
+            <a href="/login/" style="color:#1a56b0; font-weight:600; text-decoration:none;">Sign in</a>
+        </p>
+    </div>
+</div>
+ 
+{% endblock %}

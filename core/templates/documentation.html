@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+{% block content %}
+
+{% if not is_premium and not is_admin %}
+<!-- NON-PREMIUM: locked view -->
+<div style="margin-bottom:32px; text-align:center;">
+    <div style="display:inline-block; background:rgba(231,76,60,0.08); border:1.5px solid rgba(231,76,60,0.2); border-radius:14px; padding:12px 28px; color:#e74c3c; font-size:0.92rem; margin-bottom:8px;">
+        🔒 Premium membership required to access documentation.
+        <a href="/premium/" style="color:#667eea; font-weight:600; margin-left:6px;">Upgrade now →</a>
+    </div>
+</div>
+
+<h2 class="mb-4 text-center" style="font-family:'Playfair Display',Georgia,serif;font-style:italic;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Documentation</h2>
+
+<div style="opacity:0.45; pointer-events:none; user-select:none; filter:blur(2px);">
+    <div style="border-radius:15px;border:1.5px solid rgba(102,126,234,0.3);padding:24px;margin-bottom:16px;">
+        <h5 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#667eea;">📄 Premium Course Notes</h5>
+        <p style="color:#777;">Detailed study materials prepared by expert educators covering all major subjects.</p>
+    </div>
+    <div style="border-radius:15px;border:1.5px solid rgba(102,126,234,0.3);padding:24px;margin-bottom:16px;">
+        <h5 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#667eea;">🎬 Video Resources</h5>
+        <p style="color:#777;">In-depth lecture videos and topic walkthroughs available on demand.</p>
+    </div>
+    <div style="border-radius:15px;border:1.5px solid rgba(102,126,234,0.3);padding:24px;">
+        <h5 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#667eea;">📚 Subject Libraries</h5>
+        <p style="color:#777;">Organized collections of notes and exercises by subject and difficulty level.</p>
+    </div>
+</div>
+
+{% else %}
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+    <h2 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:0;">Documentation</h2>
+    {% if is_educator or is_admin %}
+    <a href="/documentation/create/" class="btn px-4 py-2" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:12px;font-size:0.92rem;font-weight:500;box-shadow:0 4px 14px rgba(102,126,234,0.3);">
+        + Add Content
+    </a>
+    {% endif %}
+</div>
+
+<!-- Educator tarafından oluşturulan içerikler -->
+{% if doc_contents %}
+<div class="mb-5">
+    {% regroup doc_contents by subject as subject_list %}
+    {% for subject_group in subject_list %}
+    <div class="mb-4 p-4" style="border-radius:15px;border:1.5px solid rgba(102,126,234,0.2);box-shadow:0 4px 15px rgba(102,126,234,0.08);">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+                <h5 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#667eea;margin:0;">{{ subject_group.grouper }}</h5>
+            </div>
+        </div>
+        <div class="row g-3">
+        {% for item in subject_group.list %}
+        <div class="col-md-6">
+            <div style="background:rgba(102,126,234,0.05);border:1px solid rgba(102,126,234,0.12);border-radius:12px;padding:16px;height:100%;">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div style="flex:1;">
+                        {% if item.content_type == 'note' %}
+                        <div style="font-size:0.75rem;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">📄 Course Note</div>
+                        {% else %}
+                        <div style="font-size:0.75rem;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">🎬 Video</div>
+                        {% endif %}
+                        <div style="font-weight:600;color:#333;font-size:0.92rem;margin-bottom:6px;">{{ item.title }}</div>
+                        {% if item.is_premium %}<span style="background:linear-gradient(135deg,rgba(102,126,234,0.1),rgba(118,75,162,0.1));color:#667eea;border:1px solid rgba(102,126,234,0.2);border-radius:20px;padding:1px 8px;font-size:0.72rem;font-weight:600;">⭐ Premium</span>{% endif %}
+                        <div style="font-size:0.76rem;color:#bbb;margin-top:4px;">by {{ item.created_by.username }}</div>
+                    </div>
+                    <div class="d-flex gap-1">
+                        {% if item.content_type == 'note' %}
+                        <button onclick="openDocModal('{{ item.title|escapejs }}','{{ item.body|escapejs }}')" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">Read</button>
+                        {% else %}
+                        <button onclick="openVideoModal('{{ item.title|escapejs }}','{{ item.video_url|escapejs }}')" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">▶ Watch</button>
+                        {% endif %}
+                        {% if item.created_by == request.user or is_admin %}
+                        <form method="POST" action="/documentation/delete/{{ item.id }}/" style="margin:0;">{% csrf_token %}
+                            <button type="submit" onclick="return confirm('Delete this content?')" style="background:rgba(231,76,60,0.08);color:#e74c3c;border:1px solid rgba(231,76,60,0.15);border-radius:8px;padding:5px 8px;font-size:0.78rem;cursor:pointer;">✕</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% for room in rooms %}
+<div class="mb-4 p-4" style="border-radius:15px;border:1.5px solid rgba(102,126,234,0.3);box-shadow:0 4px 15px rgba(102,126,234,0.1);">
+    <h5 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#667eea;">{{ room.title }}</h5>
+    <span class="badge mb-3" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;">{{ room.subject }}</span>
+
+    <div class="row g-3 mt-1">
+        <div class="col-md-6">
+            <div class="p-3" style="background:rgba(102,126,234,0.07);border-radius:10px;">
+                <h6 style="color:#764ba2;">📝 Course Notes</h6>
+                <ul style="list-style:none;padding:0;">
+                    <li class="mb-2">
+                        <a href="#" onclick="openNote('{{ room.subject }} - Course Notes', 'Core concepts, formulas, and summaries for {{ room.subject }}. Topics: Introduction, Key Concepts, Examples, Summary.'); return false;" style="color:#667eea;text-decoration:none;">
+                            📄 {{ room.subject }} - Course Notes
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" onclick="openNote('{{ room.subject }} - Quick Summary', 'A concise summary of {{ room.subject }}. Ideal for last-minute revision. Key terms and formulas are highlighted.'); return false;" style="color:#667eea;text-decoration:none;">
+                            📄 {{ room.subject }} - Quick Summary
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" onclick="openNote('{{ room.subject }} - Detailed Notes ⭐', 'Advanced in-depth notes for {{ room.subject }}. Includes proofs, derivations, and extended explanations. Premium content: all chapters covered in depth.'); return false;" style="color:#764ba2;text-decoration:none;font-weight:500;">
+                            ⭐ {{ room.subject }} - Detailed Notes
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" onclick="openNote('{{ room.subject }} - Exam Prep ⭐', 'Exam preparation pack for {{ room.subject }}. Includes past questions, predicted questions, and answer keys. Exclusive to Premium members.'); return false;" style="color:#764ba2;text-decoration:none;font-weight:500;">
+                            ⭐ {{ room.subject }} - Exam Prep Pack
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="p-3" style="background:rgba(102,126,234,0.07);border-radius:10px;">
+                <h6 style="color:#764ba2;">🎥 Video Resources</h6>
+                <ul style="list-style:none;padding:0;">
+                    <li class="mb-2">
+                        <a href="#" onclick="openFakeVideo('{{ room.subject }} - Introduction Video'); return false;" style="color:#667eea;text-decoration:none;">
+                            ▶ {{ room.subject }} - Introduction
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" onclick="openFakeVideo('{{ room.subject }} - Topic Walkthrough'); return false;" style="color:#667eea;text-decoration:none;">
+                            ▶ {{ room.subject }} - Topic Walkthrough
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" onclick="openYoutube('https://www.youtube.com/embed/dQw4w9WgXcQ', '{{ room.subject }} - Advanced Video ⭐'); return false;" style="color:#764ba2;text-decoration:none;font-weight:500;">
+                            ⭐ {{ room.subject }} - Advanced Video
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" onclick="openYoutube('https://www.youtube.com/embed/dQw4w9WgXcQ', '{{ room.subject }} - Live Session Archive ⭐'); return false;" style="color:#764ba2;text-decoration:none;font-weight:500;">
+                            ⭐ {{ room.subject }} - Live Session Archive
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<p class="text-center text-muted">No study rooms found. Create a room to get started.</p>
+{% endfor %}
+
+<!-- NOTE MODAL -->
+<div id="noteModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:20px;padding:36px;max-width:560px;width:90%;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+        <button onclick="closeModal('noteModal')" style="position:absolute;top:16px;right:20px;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#999;">✕</button>
+        <h5 id="noteTitle" style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#667eea;margin-bottom:16px;"></h5>
+        <div style="background:rgba(102,126,234,0.07);border-radius:12px;padding:20px;">
+            <p id="noteContent" style="color:#444;line-height:1.8;margin:0;"></p>
+        </div>
+        <div class="mt-3 text-end">
+            <button onclick="closeModal('noteModal')" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:10px;padding:8px 24px;cursor:pointer;">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- FREE VIDEO MODAL -->
+<div id="fakeVideoModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:20px;padding:28px;max-width:600px;width:90%;position:relative;">
+        <button onclick="closeModal('fakeVideoModal')" style="position:absolute;top:16px;right:20px;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#999;">✕</button>
+        <h5 id="fakeVideoTitle" style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#667eea;margin-bottom:16px;"></h5>
+        <div style="background:#111;border-radius:12px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+            <div style="width:64px;height:64px;background:rgba(255,255,255,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="this.innerHTML='⏸';this.style.background='rgba(102,126,234,0.5)'">
+                <span style="color:white;font-size:1.8rem;">▶</span>
+            </div>
+            <span style="color:rgba(255,255,255,0.5);font-size:0.85rem;">Free preview</span>
+        </div>
+        <div class="mt-3 text-center">
+            <button onclick="closeModal('fakeVideoModal')" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:10px;padding:8px 24px;cursor:pointer;">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- PREMIUM VIDEO MODAL -->
+<div id="youtubeModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:20px;padding:28px;max-width:700px;width:90%;position:relative;">
+        <button onclick="closeModal('youtubeModal')" style="position:absolute;top:16px;right:20px;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#999;">✕</button>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+            <h5 id="youtubeTitle" style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#667eea;margin:0;"></h5>
+            <span style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border-radius:20px;padding:2px 10px;font-size:0.75rem;">⭐ Premium</span>
+        </div>
+        <div style="border-radius:12px;overflow:hidden;aspect-ratio:16/9;">
+            <iframe id="youtubeFrame" width="100%" height="100%" src="" frameborder="0" allowfullscreen style="display:block;"></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+function openNote(title, content) {
+    document.getElementById('noteTitle').innerText = title;
+    document.getElementById('noteContent').innerText = content;
+    document.getElementById('noteModal').style.display = 'flex';
+}
+function openFakeVideo(title) {
+    document.getElementById('fakeVideoTitle').innerText = title;
+    document.getElementById('fakeVideoModal').style.display = 'flex';
+}
+function openYoutube(url, title) {
+    document.getElementById('youtubeTitle').innerText = title;
+    document.getElementById('youtubeFrame').src = url;
+    document.getElementById('youtubeModal').style.display = 'flex';
+}
+function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+    if (id === 'youtubeModal') document.getElementById('youtubeFrame').src = '';
+}
+window.onclick = function(e) {
+    ['noteModal','fakeVideoModal','youtubeModal'].forEach(function(id) {
+        var modal = document.getElementById(id);
+        if (e.target === modal) {
+            modal.style.display = 'none';
+            if (id === 'youtubeModal') document.getElementById('youtubeFrame').src = '';
+        }
+    });
+}
+</script>
+
+
+<!-- DOC MODAL -->
+<div id="docModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:20px;padding:36px;max-width:600px;width:90%;position:relative;max-height:80vh;overflow-y:auto;">
+        <button onclick="closeModal('docModal')" style="position:absolute;top:16px;right:20px;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#999;">✕</button>
+        <h5 id="docModalTitle" style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#667eea;margin-bottom:16px;padding-right:30px;"></h5>
+        <div style="background:rgba(102,126,234,0.05);border-radius:12px;padding:20px;">
+            <p id="docModalBody" style="color:#444;line-height:1.8;margin:0;white-space:pre-wrap;"></p>
+        </div>
+    </div>
+</div>
+
+<!-- VIDEO MODAL -->
+<div id="videoModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:20px;padding:28px;max-width:700px;width:90%;position:relative;">
+        <button onclick="closeModal('videoModal')" style="position:absolute;top:16px;right:20px;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#999;">✕</button>
+        <h5 id="videoModalTitle" style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#667eea;margin-bottom:16px;padding-right:30px;"></h5>
+        <div style="border-radius:12px;overflow:hidden;aspect-ratio:16/9;">
+            <iframe id="videoFrame" width="100%" height="100%" src="" frameborder="0" allowfullscreen style="display:block;"></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+function openDocModal(title, body) {
+    document.getElementById('docModalTitle').innerText = title;
+    document.getElementById('docModalBody').innerText = body;
+    document.getElementById('docModal').style.display = 'flex';
+}
+function openVideoModal(title, url) {
+    document.getElementById('videoModalTitle').innerText = title;
+    // YouTube URL'ini embed formatına çevir
+    let embedUrl = url;
+    if (url.includes('youtube.com/watch?v=')) {
+        const id = url.split('v=')[1].split('&')[0];
+        embedUrl = `https://www.youtube.com/embed/${id}`;
+    } else if (url.includes('youtu.be/')) {
+        const id = url.split('youtu.be/')[1];
+        embedUrl = `https://www.youtube.com/embed/${id}`;
+    }
+    document.getElementById('videoFrame').src = embedUrl;
+    document.getElementById('videoModal').style.display = 'flex';
+}
+function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+    if (id === 'videoModal') document.getElementById('videoFrame').src = '';
+}
+['docModal','videoModal'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function(e) {
+        if (e.target === this) closeModal(id);
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+    .panel { background:white;border-radius:16px;border:1.5px solid rgba(102,126,234,0.15);box-shadow:0 4px 20px rgba(102,126,234,0.08);overflow:hidden; }
+    .panel-header { padding:14px 20px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:1rem;font-weight:600; }
+    .panel-body { padding:16px; }
+    #notes { width:100%;border:none;outline:none;resize:none;font-size:0.9rem;color:#444;line-height:1.7;height:260px;font-family:inherit; }
+    #chatInput { width:100%;padding:10px 14px;border:1.5px solid rgba(102,126,234,0.2);border-radius:10px;font-size:0.9rem;outline:none;transition:border-color 0.2s; }
+    #chatInput:focus { border-color:#667eea; }
+    .chat-msg { padding:6px 0;border-bottom:1px solid rgba(102,126,234,0.06);font-size:0.86rem;line-height:1.5; }
+    .chat-msg strong { color:#667eea; }
+</style>
+
+<!-- ROOM HEADER -->
+<div style="border-radius:18px;background:linear-gradient(135deg,#667eea,#764ba2);padding:26px 32px;margin-bottom:24px;position:relative;overflow:hidden;box-shadow:0 8px 28px rgba(102,126,234,0.3);">
+    <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.07);"></div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;position:relative;">
+        <div>
+            <div style="font-size:0.72rem;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">🎓 Live Tutoring · {{ room.duration_minutes }} min · Max {{ room.max_students }}</div>
+            <h2 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:white;margin-bottom:4px;font-size:1.7rem;">{{ room.title }}</h2>
+            <p style="color:rgba(255,255,255,0.7);margin:0;font-size:0.9rem;">{{ room.subject }}{% if room.description %} · {{ room.description }}{% endif %}</p>
+            <div style="margin-top:8px;font-size:0.8rem;color:rgba(255,255,255,0.55);">Educator: {{ room.educator.username }}</div>
+            {% if is_owner and room.invite_code %}
+            <div style="margin-top:10px;display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:12px;padding:6px 14px;">
+                <span style="font-size:0.7rem;opacity:0.7;text-transform:uppercase;letter-spacing:1px;">🔑 Invite Code</span>
+                <span style="font-family:monospace;font-size:1.05rem;font-weight:700;letter-spacing:3px;">{{ room.invite_code }}</span>
+                <button onclick="navigator.clipboard.writeText('{{ room.invite_code }}');this.innerText='Copied!';setTimeout(()=>this.innerText='Copy',2000)" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:6px;padding:3px 10px;font-size:0.75rem;cursor:pointer;">Copy</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- CAMERA (eğer izin varsa) -->
+{% if room.allow_camera or room.allow_mic %}
+<div class="panel mb-4">
+    <div class="panel-header">📹 Live Session</div>
+    <div class="panel-body">
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div style="border-radius:12px;background:#111;aspect-ratio:16/9;position:relative;display:flex;align-items:center;justify-content:center;">
+                    <div id="localPlaceholder" style="text-align:center;color:#555;"><div style="font-size:2rem;">📷</div><div style="font-size:0.78rem;margin-top:6px;">Camera off</div></div>
+                    <video id="localVideo" autoplay muted style="display:none;width:100%;height:100%;object-fit:cover;border-radius:12px;"></video>
+                    <div style="position:absolute;bottom:8px;left:10px;background:rgba(0,0,0,0.5);color:white;font-size:0.72rem;padding:2px 8px;border-radius:6px;">You</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div style="border-radius:12px;background:#111;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;">
+                    <div style="text-align:center;color:#555;"><div style="font-size:2rem;">👤</div><div style="font-size:0.78rem;margin-top:6px;">Waiting...</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-3 justify-content-center">
+            {% if room.allow_camera %}
+            <button id="camBtn" onclick="toggleCamera()" style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;font-size:1.2rem;cursor:pointer;opacity:0.45;transition:opacity 0.2s;">📷</button>
+            {% endif %}
+            {% if room.allow_mic %}
+            <button id="micBtn" onclick="toggleMic()" style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;border:none;font-size:1.2rem;cursor:pointer;opacity:0.45;transition:opacity 0.2s;">🎤</button>
+            {% endif %}
+            <button onclick="endSession()" style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#ff7e5f,#feb47b);color:white;border:none;font-size:1.2rem;cursor:pointer;">📵</button>
+            <span id="sessionStatus" style="font-size:0.82rem;color:#aaa;">Camera & mic off</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- PARTICIPANTS + NOTES + CHAT -->
+<div class="row g-4 mb-4">
+
+    <!-- PARTICIPANTS -->
+    <div class="col-md-3">
+        <div class="panel" style="height:300px;">
+            <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;">
+                <span>👥 Participants</span>
+                <button onclick="refreshParticipants()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:6px;padding:2px 8px;font-size:0.75rem;cursor:pointer;">↺</button>
+            </div>
+            <div class="panel-body" style="height:calc(100% - 49px);overflow-y:auto;padding:10px 12px;" id="participantList">
+                <!-- Educator -->
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(102,126,234,0.08);">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#f7971e,#ffd200);display:flex;align-items:center;justify-content:center;color:white;font-size:0.72rem;font-weight:700;flex-shrink:0;">{{ room.educator.username|first|upper }}</div>
+                        <div>
+                            <div style="font-size:0.85rem;font-weight:600;color:#333;">{{ room.educator.username }}</div>
+                            <div style="font-size:0.7rem;color:#f7971e;">● Educator</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Dynamic participants -->
+                <div id="dynamicParticipants">
+                {% for p in participant_list %}
+                <div id="p-{{ p.id }}" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(102,126,234,0.08);">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:0.72rem;font-weight:700;flex-shrink:0;">{{ p.username|first|upper }}</div>
+                        <div style="font-size:0.85rem;color:#555;">{{ p.username }}</div>
+                    </div>
+                    {% if is_owner %}
+                    <div class="d-flex gap-1">
+                        <button onclick="muteLesson({{ p.id }}, 'mute_mic')" title="Mute mic" style="background:rgba(247,151,30,0.1);color:#f7971e;border:1px solid rgba(247,151,30,0.2);border-radius:6px;padding:2px 7px;font-size:0.72rem;cursor:pointer;">🎤</button>
+                        <button onclick="muteLesson({{ p.id }}, 'mute_cam')" title="Turn off cam" style="background:rgba(102,126,234,0.1);color:#667eea;border:1px solid rgba(102,126,234,0.2);border-radius:6px;padding:2px 7px;font-size:0.72rem;cursor:pointer;">📷</button>
+                        <button onclick="kickLesson({{ p.id }}, '{{ p.username }}')" title="Kick" style="background:rgba(231,76,60,0.08);color:#e74c3c;border:1px solid rgba(231,76,60,0.15);border-radius:6px;padding:2px 7px;font-size:0.72rem;cursor:pointer;">✕</button>
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <p id="emptyParticipants" style="color:#bbb;font-size:0.82rem;text-align:center;padding:16px 0;">Waiting for students...</p>
+                {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTES -->
+    {% if room.allow_notes %}
+    <div class="col-md-{% if room.allow_chat %}5{% else %}9{% endif %}">
+        <div class="panel" style="height:300px;">
+            <div class="panel-header">📝 Shared Notes</div>
+            <div class="panel-body" style="height:calc(100% - 49px);">
+                <textarea id="notes" placeholder="Take notes during your session..."></textarea>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- CHAT -->
+    {% if room.allow_chat %}
+    <div class="col-md-{% if room.allow_notes %}4{% else %}9{% endif %}">
+        <div class="panel" style="height:300px;display:flex;flex-direction:column;">
+            <div class="panel-header">💬 Chat</div>
+            <div id="chatBox" class="panel-body" style="flex:1;overflow-y:auto;">
+                <p style="color:#bbb;font-size:0.85rem;text-align:center;margin-top:20px;">Say hello!</p>
+            </div>
+            <div style="padding:12px;border-top:1px solid rgba(102,126,234,0.1);">
+                <div class="d-flex gap-2">
+                    <input id="chatInput" type="text" placeholder="Write a message...">
+                    <button onclick="sendMsg()" style="padding:10px 16px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:10px;font-size:0.9rem;cursor:pointer;white-space:nowrap;">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- FILE SHARING -->
+{% if room.allow_files %}
+<div class="panel mb-4">
+    <div class="panel-header">📎 File Sharing</div>
+    <div class="panel-body">
+        <div onclick="document.getElementById('fileInput').click()" style="border:2px dashed rgba(102,126,234,0.3);border-radius:14px;padding:20px;text-align:center;cursor:pointer;" onmouseover="this.style.borderColor='#667eea'" onmouseout="this.style.borderColor='rgba(102,126,234,0.3)'" ondragover="event.preventDefault()" ondrop="handleDrop(event)">
+            <div style="font-size:1.6rem;margin-bottom:6px;">📁</div>
+            <div style="font-weight:600;color:#667eea;font-size:0.9rem;">Click or drag a file</div>
+            <div style="font-size:0.78rem;color:#aaa;">Max 20MB</div>
+            <input type="file" id="fileInput" style="display:none;" onchange="uploadFile(this.files[0])">
+        </div>
+        <div id="fileList" style="margin-top:14px;"></div>
+    </div>
+</div>
+{% endif %}
+
+<div style="margin-bottom:30px;"></div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+const ROOM_PK = '{{ room.id }}';
+
+
+const LESSON_ROOM_PK = '{{ room.id }}';
+const LESSON_CSRF = '{{ csrf_token }}';
+const IS_OWNER = {% if is_owner %}true{% else %}false{% endif %};
+const CURRENT_USER_ID = {{ current_user_id }};
+
+// ── PARTICIPANT CONTROLS (Educator/Admin) ──
+function muteLesson(userId, action) {
+    fetch(`/room/${LESSON_ROOM_PK}/media-control/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': LESSON_CSRF},
+        body: JSON.stringify({user_id: userId, action: action})
+    }).then(r => r.json()).then(d => {
+        if (d.status === 'ok') {
+            const label = action === 'mute_mic' ? 'mic muted' : 'camera turned off';
+            // küçük toast benzeri bildirim
+            showToast(`Signal sent: ${label}`);
+        }
+    });
+}
+
+function kickLesson(userId, username) {
+    if (!confirm(`Remove ${username} from this session?`)) return;
+    fetch(`/lesson-rooms/${LESSON_ROOM_PK}/kick/${userId}/`, {
+        method: 'POST',
+        headers: {'X-CSRFToken': LESSON_CSRF}
+    }).then(r => r.json()).then(d => {
+        if (d.status === 'ok') {
+            const el = document.getElementById(`p-${userId}`);
+            if (el) el.remove();
+            showToast(`${username} has been removed.`);
+        }
+    });
+}
+
+function refreshParticipants() {
+    fetch(`/lesson-rooms/${LESSON_ROOM_PK}/participants/`)
+    .then(r => r.json())
+    .then(data => {
+        const container = document.getElementById('dynamicParticipants');
+        const empty = document.getElementById('emptyParticipants');
+        if (!container) return;
+        if (data.participants.length === 0) {
+            container.innerHTML = '<p id="emptyParticipants" style="color:#bbb;font-size:0.82rem;text-align:center;padding:16px 0;">Waiting for students...</p>';
+            return;
+        }
+        container.innerHTML = data.participants.map(p => `
+            <div id="p-${p.id}" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(102,126,234,0.08);">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:0.72rem;font-weight:700;">${p.username[0].toUpperCase()}</div>
+                    <div style="font-size:0.85rem;color:#555;">${p.username}</div>
+                </div>
+                ${IS_OWNER ? `
+                <div style="display:flex;gap:4px;">
+                    <button onclick="muteLesson(${p.id},'mute_mic')" style="background:rgba(247,151,30,0.1);color:#f7971e;border:1px solid rgba(247,151,30,0.2);border-radius:6px;padding:2px 7px;font-size:0.72rem;cursor:pointer;" title="Mute mic">🎤</button>
+                    <button onclick="muteLesson(${p.id},'mute_cam')" style="background:rgba(102,126,234,0.1);color:#667eea;border:1px solid rgba(102,126,234,0.2);border-radius:6px;padding:2px 7px;font-size:0.72rem;cursor:pointer;" title="Turn off camera">📷</button>
+                    <button onclick="kickLesson(${p.id},'${p.username}')" style="background:rgba(231,76,60,0.08);color:#e74c3c;border:1px solid rgba(231,76,60,0.15);border-radius:6px;padding:2px 7px;font-size:0.72rem;cursor:pointer;" title="Kick">✕</button>
+                </div>` : ''}
+            </div>`).join('');
+    });
+}
+
+// Media control polling
+setInterval(() => {
+    fetch(`/room/${LESSON_ROOM_PK}/check-media/`)
+    .then(r => r.json())
+    .then(data => {
+        if (data.action === 'mute_mic' && typeof micOn !== 'undefined' && micOn) {
+            toggleMic(); showToast('Your microphone was muted by the educator.', 'warning');
+        } else if (data.action === 'mute_cam' && typeof camOn !== 'undefined' && camOn) {
+            toggleCamera(); showToast('Your camera was turned off by the educator.', 'warning');
+        } else if (data.action === 'kick') {
+            showToast('You have been removed from this session.', 'error');
+            setTimeout(() => window.location.href = '/premium-rooms/', 2000);
+        }
+    });
+}, 5000);
+
+// Auto refresh participants every 15s
+setInterval(refreshParticipants, 15000);
+
+// Toast notification
+function showToast(msg, type='success') {
+    const toast = document.createElement('div');
+    const colors = {success:'#43e97b', warning:'#f7971e', error:'#e74c3c'};
+    toast.style.cssText = `position:fixed;bottom:80px;right:24px;background:${colors[type]||colors.success};color:white;padding:12px 20px;border-radius:12px;font-size:0.88rem;font-weight:500;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.15);transition:opacity 0.3s;`;
+    toast.innerText = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
+// CAMERA & MIC
+let localStream=null,camOn=false,micOn=false;
+async function toggleCamera(){
+    const btn=document.getElementById('camBtn');
+    if(!camOn){
+        try{
+            localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:micOn});
+            const v=document.getElementById('localVideo');v.srcObject=localStream;v.style.display='block';
+            document.getElementById('localPlaceholder').style.display='none';
+            camOn=true;if(btn)btn.style.opacity='1';updateStatus();
+        }catch(e){alert('Camera access denied.');}
+    }else{
+        if(localStream)localStream.getVideoTracks().forEach(t=>t.stop());
+        document.getElementById('localVideo').style.display='none';
+        document.getElementById('localPlaceholder').style.display='flex';
+        camOn=false;if(btn)btn.style.opacity='0.45';updateStatus();
+    }
+}
+async function toggleMic(){
+    const btn=document.getElementById('micBtn');
+    if(!micOn){
+        try{
+            const s=await navigator.mediaDevices.getUserMedia({audio:true});
+            if(localStream)s.getAudioTracks().forEach(t=>localStream.addTrack(t));else localStream=s;
+            micOn=true;if(btn){btn.style.opacity='1';btn.innerHTML='🎙️';}updateStatus();
+        }catch(e){alert('Microphone access denied.');}
+    }else{
+        if(localStream)localStream.getAudioTracks().forEach(t=>t.stop());
+        micOn=false;if(btn){btn.style.opacity='0.45';btn.innerHTML='🎤';}updateStatus();
+    }
+}
+function endSession(){
+    if(localStream)localStream.getTracks().forEach(t=>t.stop());
+    camOn=false;micOn=false;
+    const v=document.getElementById('localVideo');if(v)v.style.display='none';
+    const p=document.getElementById('localPlaceholder');if(p)p.style.display='flex';
+    const cb=document.getElementById('camBtn');if(cb){cb.style.opacity='0.45';cb.innerHTML='📷';}
+    const mb=document.getElementById('micBtn');if(mb){mb.style.opacity='0.45';mb.innerHTML='🎤';}
+    updateStatus();
+}
+function updateStatus(){
+    const el=document.getElementById('sessionStatus');if(!el)return;
+    if(camOn&&micOn)el.innerHTML='<span style="color:#43e97b;">● Live</span>';
+    else if(camOn)el.innerHTML='<span style="color:#667eea;">● Camera on</span>';
+    else if(micOn)el.innerHTML='<span style="color:#43e97b;">● Mic on</span>';
+    else el.innerText='Camera & mic off';
+}
+
+// CHAT
+function sendMsg(){
+    const input=document.getElementById('chatInput');
+    const msg=input.value.trim();if(!msg)return;
+    const chatBox=document.getElementById('chatBox');
+    chatBox.innerHTML+=`<div class="chat-msg"><strong>You</strong> ${msg}</div>`;
+    input.value='';chatBox.scrollTop=chatBox.scrollHeight;
+}
+const ci=document.getElementById('chatInput');
+if(ci)ci.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
+
+// FILE SHARING
+function handleDrop(e){e.preventDefault();const f=e.dataTransfer.files[0];if(f)uploadFile(f);}
+function uploadFile(file){
+    if(!file)return;
+    if(file.size>20*1024*1024){alert('Max 20MB');return;}
+    const fd=new FormData();fd.append('file',file);fd.append('csrfmiddlewaretoken',CSRF);
+    fetch(`/room/${ROOM_PK}/upload/`,{method:'POST',body:fd})
+    .then(r=>r.json()).then(data=>{
+        if(data.status==='ok'){
+            const ext=data.name.split('.').pop().toLowerCase();
+            const icon=['pdf'].includes(ext)?'📄':['jpg','jpeg','png','gif','webp'].includes(ext)?'🖼️':'📁';
+            const item=document.createElement('div');
+            item.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(102,126,234,0.08);';
+            item.innerHTML=`<span style="font-size:1.2rem;">${icon}</span><span style="flex:1;font-size:0.87rem;color:#333;">${data.name}</span><a href="${data.url}" download="${data.name}" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border-radius:8px;padding:5px 12px;font-size:0.78rem;text-decoration:none;">⬇ Download</a>`;
+            document.getElementById('fileList').prepend(item);
+        }else{alert(data.error||'Upload failed');}
+    });
+}
+</script>
+
+{% endblock %}

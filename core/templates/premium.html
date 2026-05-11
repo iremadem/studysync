@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<!-- YEDİTEPE BANNER -->
+<div style="background:linear-gradient(135deg,#1a56b0,#003087);border-radius:18px;padding:28px 32px;margin-bottom:32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;box-shadow:0 8px 28px rgba(26,86,176,0.3);">
+    <div>
+        <div style="font-size:0.78rem;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">Yeditepe University Students</div>
+        <div style="font-family:'Segoe UI',Arial,sans-serif;font-weight:900;font-size:1.4rem;color:white;margin-bottom:6px;">🎓 Get 1 Month Free Premium!</div>
+        <div style="color:rgba(255,255,255,0.8);font-size:0.9rem;">Verify your @std.yeditepe.edu.tr email and unlock Premium for free.</div>
+    </div>
+    <a href="/verify-yeditepe/" style="background:white;color:#1a56b0;border-radius:12px;padding:12px 24px;font-weight:700;text-decoration:none;font-size:0.95rem;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,0.1);">
+        Verify Now →
+    </a>
+</div>
+
+ 
+{% if messages %}
+{% for message in messages %}
+<div class="alert" style="border-radius:10px;background:{% if 'error' in message.tags %}rgba(231,76,60,0.1){% else %}rgba(67,233,123,0.15){% endif %};border:1.5px solid {% if 'error' in message.tags %}#e74c3c{% else %}#43e97b{% endif %};color:#333;margin-bottom:16px;">
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+ 
+<div class="text-center mb-5">
+    <h2 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:2.5rem;background:linear-gradient(135deg,#1a56b0,#003087);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+        Choose Your Plan
+    </h2>
+    <p style="color:#777;font-size:1.1rem;">Unlock premium content and exclusive study rooms.</p>
+</div>
+ 
+<div class="row g-4 justify-content-center mb-5">
+{% for plan in plans %}
+ 
+    <div class="col-md-4">
+        <div class="p-4 text-center h-100" style="
+            border-radius:20px;
+            {% if plan.is_popular %}
+                background:linear-gradient(135deg,#1a56b0,#003087);
+                box-shadow:0 8px 30px rgba(26,86,176,0.4);
+                transform:translateY(-8px);
+            {% else %}
+                border:1.5px solid rgba(26,86,176,0.3);
+                box-shadow:0 4px 20px rgba(26,86,176,0.1);
+            {% endif %}
+            transition:transform 0.3s;
+        "
+        onmouseover="this.style.transform='translateY({% if plan.is_popular %}-14{% else %}-6{% endif %}px)'"
+        onmouseout="this.style.transform='translateY({% if plan.is_popular %}-8{% else %}0{% endif %}px)'">
+ 
+            {% if plan.is_popular %}
+                <div class="mb-2">
+                    <span style="background:rgba(255,255,255,0.25);color:white;border-radius:20px;padding:4px 14px;font-size:0.8rem;">⭐ Most Popular</span>
+                </div>
+            {% endif %}
+ 
+            <div style="font-size:2.5rem;" class="mb-3">{{ plan.icon }}</div>
+ 
+            <h4 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;{% if plan.is_popular %}color:white;{% else %}color:#1a56b0;{% endif %}">
+                {{ plan.name }}
+            </h4>
+ 
+            <div style="font-size:2.2rem;font-weight:700;{% if plan.is_popular %}color:white;{% else %}color:#333;{% endif %}" class="my-3">
+                {{ plan.currency }}{{ plan.price }}
+                <span style="font-size:1rem;{% if plan.is_popular %}opacity:0.8;{% else %}color:#999;{% endif %}">/ {{ plan.period }}</span>
+            </div>
+ 
+            {% if plan.promo_text %}
+                <div style="color:#e74c3c;font-size:0.85rem;margin-bottom:8px;">{{ plan.promo_text }}</div>
+            {% endif %}
+ 
+            <ul style="list-style:none;padding:0;{% if plan.is_popular %}color:rgba(255,255,255,0.9);{% else %}color:#555;{% endif %}text-align:left;">
+                {% for feature in plan.features_list %}
+                    <li class="mb-2">✅ {{ feature }}</li>
+                {% endfor %}
+                {% if not plan.has_priority_support %}
+                    <li class="mb-2" style="{% if plan.is_popular %}opacity:0.5;{% else %}color:#bbb;{% endif %}">❌ Priority support</li>
+                {% endif %}
+            </ul>
+ 
+            <form method="POST" action="/premium/request/">
+                {% csrf_token %}
+                <input type="hidden" name="plan" value="{{ plan.key }}">
+                <button class="btn w-100 mt-3" style="
+                    {% if plan.is_popular %}
+                        background:white;color:#1a56b0;
+                    {% else %}
+                        background:linear-gradient(135deg,#1a56b0,#003087);color:white;
+                    {% endif %}
+                    border:none;border-radius:10px;padding:12px;font-weight:600;">
+                    Get Started →
+                </button>
+            </form>
+ 
+            {% if request.user.is_staff %}
+            <a href="/premium/edit/{{ plan.key }}/" class="btn w-100 mt-2" style="
+                background:transparent;
+                border:1.5px dashed {% if plan.is_popular %}rgba(255,255,255,0.5){% else %}rgba(26,86,176,0.4){% endif %};
+                color:{% if plan.is_popular %}rgba(255,255,255,0.8){% else %}#1a56b0{% endif %};
+                border-radius:10px;padding:8px;font-size:0.85rem;
+                transition:background 0.2s;">
+                ✏️ Edit Plan
+            </a>
+            {% endif %}
+ 
+        </div>
+    </div>
+ 
+{% endfor %}
+</div>
+ 
+<div class="text-center mt-2 mb-4">
+    <a href="/premium-rooms/" class="btn" style="background:linear-gradient(135deg,#1a56b0,#003087);color:white;border:none;border-radius:12px;padding:12px 32px;font-size:1rem;">
+        ⭐ View Premium Rooms
+    </a>
+</div>
+ 
+{% endblock %}

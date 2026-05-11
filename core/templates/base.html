@@ -1,0 +1,296 @@
+{% load user_tags %}
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+    <title>7TepeOnline</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+    body {
+        background: linear-gradient(135deg, #89f7fe, #66a6ff, #c2e9fb);
+        min-height: 100vh;
+    }
+    </style>
+</head>
+<body>
+<div class="container-fluid mt-4 p-4" style="background-color:white; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.1); min-height:80vh;">
+
+    <nav class="navbar navbar-expand-lg rounded" style="background: linear-gradient(135deg, #003087, #1a56b0); padding: 12px 20px; position:relative; z-index:1000;">
+        <div class="container-fluid">
+            <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+                <img src="{% static 'images/yeditepe_logo.png' %}" alt="Yeditepe" style="height:38px;width:38px;object-fit:contain;mix-blend-mode:screen;">
+                <span style="font-family:'Segoe UI',Arial,sans-serif; font-style:normal; font-weight:900; font-size:1.4rem; background:linear-gradient(135deg,#a8c8ff,#ffffff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:0.5px;">7TepeOnline</span>
+            </a>
+            <div>
+                <a class="btn me-2" href="/premium/" style="border:1.5px solid rgba(255,255,255,0.6); color:white; background:transparent;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='transparent'">Premium</a>
+                <a class="btn me-2" href="/premium-rooms/" style="border:1.5px solid rgba(255,255,255,0.6); color:white; background:transparent;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='transparent'">Live Tutoring</a>
+                <a class="btn me-2" href="/documentation/" style="border:1.5px solid rgba(255,255,255,0.6); color:white; background:transparent;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='transparent'">Documentation</a>
+                <a class="btn me-2" href="/rooms/" style="border:1.5px solid rgba(255,255,255,0.6); color:white; background:transparent;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='transparent'">Rooms</a>
+
+                {% if request.user.is_staff %}
+                <a class="btn me-2" href="/admin-panel/" style="border:1.5px solid rgba(255,255,255,0.6);color:white;background:transparent;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='transparent'">⚙ Panel</a>
+                {% endif %}
+                {% if request.user.is_authenticated %}
+                    {% if request.user.is_authenticated %}
+                    <a href="/" style="position:relative;display:inline-flex;align-items:center;margin-right:6px;text-decoration:none;">
+                        <button style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:white;border-radius:10px;padding:6px 12px;cursor:pointer;font-size:0.9rem;">
+                            💬
+                            <span id="dmBell" style="display:none;position:absolute;top:-5px;right:-5px;background:#e74c3c;color:white;border-radius:50%;width:18px;height:18px;font-size:0.65rem;font-weight:700;align-items:center;justify-content:center;line-height:18px;text-align:center;"></span>
+                        </button>
+                    </a>
+                    <div style="position:relative;display:inline-block;margin-right:10px;">
+                        <button onclick="toggleNotifications()" id="notifBell" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:white;border-radius:10px;padding:6px 12px;cursor:pointer;font-size:0.9rem;position:relative;">
+                            🔔 <span id="notifCount" style="display:none;position:absolute;top:-5px;right:-5px;background:#e74c3c;color:white;border-radius:50%;width:18px;height:18px;font-size:0.65rem;font-weight:700;display:none;align-items:center;justify-content:center;line-height:18px;text-align:center;"></span>
+                        </button>
+                        <div id="notifPanel" style="display:none;position:absolute;top:44px;right:0;background:white;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.15);border:1.5px solid rgba(26,86,176,0.15);min-width:300px;z-index:9999;overflow:hidden;">
+                            <div style="padding:12px 16px;background:linear-gradient(135deg,#1a56b0,#003087);color:white;font-size:0.85rem;font-weight:600;display:flex;justify-content:space-between;align-items:center;">
+                                <span>🔔 Notifications</span>
+                                <button onclick="markRead()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:6px;padding:2px 8px;font-size:0.75rem;cursor:pointer;">Mark all read</button>
+                            </div>
+                            <div id="notifList" style="max-height:320px;overflow-y:auto;">
+                                <div style="padding:20px;text-align:center;color:#bbb;font-size:0.85rem;">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <span style="color:white; margin-right:8px;">
+                        👤 {{ request.user.username }}{% user_badge_navbar request.user %}
+                    </span>
+                    <form action="/logout/" method="POST" style="display:inline; margin:0;">
+                        {% csrf_token %}
+                        <button class="btn" style="border:1.5px solid rgba(255,100,100,0.7); color:#ffcccc; background:transparent;" onmouseover="this.style.background='#e74c3c'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='#ffcccc'">Logout</button>
+                    </form>
+                {% else %}
+                    <a class="btn me-2" href="/login/" style="border:1.5px solid rgba(255,255,255,0.6); color:white; background:transparent;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='transparent'">Login</a>
+                    <a class="btn" href="/register/" style="border:1.5px solid rgba(255,255,255,0.6); color:white; background:transparent;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='transparent'">Register</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="mt-4" style="overflow:visible;">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+</div>
+
+<script>
+let notifOpen = false;
+
+function toggleNotifications() {
+    const panel = document.getElementById('notifPanel');
+    notifOpen = !notifOpen;
+    panel.style.display = notifOpen ? 'block' : 'none';
+    if (notifOpen) loadNotifications();
+}
+
+function loadNotifications() {
+    fetch('/notifications/')
+    .then(r => r.json())
+    .then(data => {
+        const list = document.getElementById('notifList');
+        const count = document.getElementById('notifCount');
+        if (data.count > 0) {
+            count.style.display = 'flex';
+            count.innerText = data.count;
+        } else {
+            count.style.display = 'none';
+        }
+        if (data.notifications.length === 0) {
+            list.innerHTML = '<div style="padding:20px;text-align:center;color:#bbb;font-size:0.85rem;">No new notifications</div>';
+            return;
+        }
+        list.innerHTML = data.notifications.map(n => {
+            if (n.type === 'join_request') {
+                return `<div style="padding:14px 16px;border-bottom:1px solid rgba(26,86,176,0.08);">
+                    <div style="font-size:0.86rem;color:#333;line-height:1.5;margin-bottom:10px;">${n.message}</div>
+                    <div class="d-flex gap-2">
+                        <button onclick="respondJoin(${n.id}, 'accept')" style="flex:1;padding:7px;background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;border:none;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;">✓ Accept</button>
+                        <button onclick="respondJoin(${n.id}, 'reject')" style="flex:1;padding:7px;background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.2);border-radius:8px;font-size:0.82rem;cursor:pointer;">✕ Decline</button>
+                    </div>
+                    <div style="font-size:0.75rem;color:#bbb;margin-top:6px;">${n.created_at}</div>
+                </div>`;
+            }
+            return `<a href="${n.link || '#'}" style="display:block;padding:14px 16px;border-bottom:1px solid rgba(26,86,176,0.08);text-decoration:none;transition:background 0.2s;" onmouseover="this.style.background='rgba(26,86,176,0.04)'" onmouseout="this.style.background='transparent'">
+                <div style="font-size:0.86rem;color:#333;line-height:1.5;">${n.message}</div>
+                <div style="font-size:0.75rem;color:#bbb;margin-top:4px;">${n.created_at}</div>
+            </a>`;
+        }).join('');
+    });
+}
+
+function respondJoin(notifId, action) {
+    fetch('/notifications/respond/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify({notif_id: notifId, action: action})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            loadNotifications();
+        }
+    });
+}
+
+function markRead() {
+    fetch('/notifications/read/', {method:'POST', headers:{'X-CSRFToken': '{{ csrf_token }}'}})
+    .then(() => {
+        document.getElementById('notifCount').style.display = 'none';
+        document.getElementById('notifList').innerHTML = '<div style="padding:20px;text-align:center;color:#bbb;font-size:0.85rem;">No new notifications</div>';
+    });
+}
+
+// Sayfa yüklendiğinde badge'i güncelle
+{% if request.user.is_authenticated %}
+// DM unread count
+fetch('/dm/unread/').then(r=>r.json()).then(d=>{
+    const bell = document.getElementById('dmBell');
+    if(bell && d.count > 0){ bell.style.display='flex'; bell.innerText=d.count; }
+});
+fetch('/notifications/').then(r=>r.json()).then(data=>{
+    const count = document.getElementById('notifCount');
+    if(count && data.count > 0){ count.style.display='flex'; count.innerText=data.count; }
+});
+{% endif %}
+
+// Panel dışına tıklayınca kapat
+document.addEventListener('click', function(e) {
+    const bell = document.getElementById('notifBell');
+    const panel = document.getElementById('notifPanel');
+    if (bell && panel && !bell.contains(e.target) && !panel.contains(e.target)) {
+        panel.style.display = 'none';
+        notifOpen = false;
+    }
+});
+</script>
+
+<!-- DM WIDGETS CONTAINER (global) -->
+<div id="dmWidgets" style="position:fixed;bottom:0;right:20px;display:flex;gap:8px;align-items:flex-end;z-index:9998;"></div>
+
+{% if request.user.is_authenticated %}
+<script>
+const DM_CSRF = '{{ csrf_token }}';
+const CURRENT_USER_ID = {{ request.user.id }};
+const CURRENT_USERNAME = '{{ request.user.username }}';
+let openChats = {};
+
+function openChat(userId, username) {
+    if (openChats[userId]) {
+        const w = document.getElementById(`chat-widget-${userId}`);
+        if (w) w.style.display = 'flex';
+        return;
+    }
+    openChats[userId] = true;
+
+    const widget = document.createElement('div');
+    widget.id = `chat-widget-${userId}`;
+    widget.style.cssText = 'width:280px;background:white;border-radius:16px 16px 0 0;border:1.5px solid rgba(26,86,176,0.2);box-shadow:0 -4px 24px rgba(26,86,176,0.15);display:flex;flex-direction:column;max-height:380px;overflow:hidden;';
+    widget.innerHTML = `
+        <div style="padding:12px 14px;background:linear-gradient(135deg,#1a56b0,#003087);color:white;display:flex;align-items:center;gap:8px;cursor:pointer;border-radius:16px 16px 0 0;" onclick="toggleChat(${userId})">
+            <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;">${username[0].toUpperCase()}</div>
+            <span style="flex:1;font-weight:600;font-size:0.88rem;">${username}</span>
+            <button onclick="closeChat(event,${userId})" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1rem;cursor:pointer;padding:0 4px;">✕</button>
+        </div>
+        <div id="chat-msgs-${userId}" style="flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-height:200px;background:#fafbff;"></div>
+        <div id="chat-input-area-${userId}" style="padding:8px;border-top:1px solid rgba(26,86,176,0.1);display:flex;gap:6px;background:white;">
+            <input id="chat-input-${userId}" type="text" placeholder="Message..." style="flex:1;padding:8px 12px;border:1.5px solid rgba(26,86,176,0.2);border-radius:10px;font-size:0.85rem;outline:none;" onkeydown="if(event.key==='Enter')sendDM(${userId})">
+            <button onclick="sendDM(${userId})" style="padding:8px 12px;background:linear-gradient(135deg,#1a56b0,#003087);color:white;border:none;border-radius:10px;font-size:0.85rem;cursor:pointer;">➤</button>
+        </div>`;
+
+    document.getElementById('dmWidgets').appendChild(widget);
+    loadMessages(userId);
+}
+
+function toggleChat(userId) {
+    const msgs = document.getElementById(`chat-msgs-${userId}`);
+    const inputArea = document.getElementById(`chat-input-area-${userId}`);
+    if (!msgs) return;
+    const isHidden = msgs.style.display === 'none';
+    msgs.style.display = isHidden ? 'flex' : 'none';
+    if (inputArea) inputArea.style.display = isHidden ? 'flex' : 'none';
+}
+
+function closeChat(e, userId) {
+    e.stopPropagation();
+    const w = document.getElementById(`chat-widget-${userId}`);
+    if (w) w.remove();
+    delete openChats[userId];
+}
+
+function loadMessages(userId) {
+    fetch(`/dm/messages/${userId}/`)
+    .then(r => r.json())
+    .then(data => {
+        const box = document.getElementById(`chat-msgs-${userId}`);
+        if (!box) return;
+        if (data.messages.length === 0) {
+            box.innerHTML = '<div style="text-align:center;color:#bbb;font-size:0.8rem;padding:20px 0;width:100%;">Say hello! 👋</div>';
+        } else {
+            box.innerHTML = data.messages.map(m => renderMsg(m)).join('');
+        }
+        box.scrollTop = box.scrollHeight;
+    })
+    .catch(err => console.error('DM load error:', err));
+}
+
+function renderMsg(m) {
+    const align = m.is_me ? 'flex-end' : 'flex-start';
+    const bg = m.is_me ? 'linear-gradient(135deg,#1a56b0,#003087)' : 'white';
+    const color = m.is_me ? 'white' : '#333';
+    const border = m.is_me ? 'none' : '1px solid rgba(26,86,176,0.15)';
+    const radius = m.is_me ? '14px 14px 4px 14px' : '14px 14px 14px 4px';
+    return `<div style="display:flex;justify-content:${align};">
+        <div style="max-width:75%;background:${bg};color:${color};border:${border};border-radius:${radius};padding:8px 12px;font-size:0.84rem;line-height:1.45;">
+            ${m.content}
+            <div style="font-size:0.68rem;opacity:0.6;margin-top:3px;text-align:right;">${m.created_at}</div>
+        </div>
+    </div>`;
+}
+
+function sendDM(userId) {
+    const input = document.getElementById(`chat-input-${userId}`);
+    const content = input.value.trim();
+    if (!content) return;
+    fetch('/dm/send/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': DM_CSRF},
+        body: JSON.stringify({receiver_id: userId, content})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            const box = document.getElementById(`chat-msgs-${userId}`);
+            const empty = box.querySelector('div[style*="Say hello"]');
+            if (empty) empty.remove();
+            box.innerHTML += renderMsg(data);
+            box.scrollTop = box.scrollHeight;
+            input.value = '';
+        }
+    });
+}
+
+// Poll: open chatler + unread badge
+setInterval(() => {
+    Object.keys(openChats).forEach(userId => {
+        if (document.getElementById(`chat-msgs-${userId}`)) {
+            loadMessages(parseInt(userId));
+        }
+    });
+    fetch('/dm/unread/').then(r => r.json()).then(d => {
+        const bell = document.getElementById('dmBell');
+        if (bell) {
+            bell.style.display = d.count > 0 ? 'flex' : 'none';
+            bell.innerText = d.count;
+        }
+        // Sidebar varsa güncelle
+        const userSearch = document.getElementById('userSearch');
+        if (typeof loadUsers === 'function') loadUsers(userSearch ? userSearch.value : '');
+    });
+}, 8000);
+</script>
+{% endif %}
+
+</body>
+</html>

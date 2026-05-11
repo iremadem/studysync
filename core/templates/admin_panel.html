@@ -1,0 +1,611 @@
+{% extends 'base.html' %}
+{% load user_tags %}
+{% block content %}
+
+{% if not request.user.is_staff %}
+<div class="text-center py-5">
+    <div style="font-size:4rem;">🚫</div>
+    <h3 style="color:#e74c3c;" class="mt-3">Access Denied</h3>
+</div>
+{% else %}
+
+<style>
+    .admin-panel-header { font-family:'Playfair Display',Georgia,serif;font-style:italic;background:linear-gradient(135deg,#1a56b0,#003087);-webkit-background-clip:text;-webkit-text-fill-color:transparent; }
+    .section-card { background:white;border-radius:16px;border:1.5px solid rgba(26,86,176,0.15);box-shadow:0 4px 20px rgba(26,86,176,0.08);overflow:hidden;margin-bottom:28px; }
+    .section-header { padding:14px 22px;background:linear-gradient(135deg,#1a56b0,#003087);color:white;font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:1rem;font-weight:600; }
+    .section-body { padding:20px 22px; }
+    .stat-card { border-radius:14px;padding:22px;text-align:center;color:white; }
+    .stat-num { font-size:2.2rem;font-weight:700; }
+    .stat-label { opacity:0.85;font-size:0.88rem;margin-top:4px; }
+    .admin-table { width:100%;border-collapse:collapse; }
+    .admin-table th { color:#1a56b0;font-size:0.82rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;padding:10px 14px;background:rgba(26,86,176,0.06);border-bottom:1.5px solid rgba(26,86,176,0.12); }
+    .admin-table td { padding:12px 14px;border-bottom:1px solid rgba(26,86,176,0.07);font-size:0.88rem;color:#444;vertical-align:middle; }
+    .admin-table tr:last-child td { border-bottom:none; }
+    .admin-table tr:hover td { background:rgba(26,86,176,0.03); }
+    .action-btn { border:none;border-radius:8px;padding:5px 12px;font-size:0.78rem;font-weight:600;cursor:pointer;transition:opacity 0.2s; }
+    .action-btn:hover { opacity:0.85; }
+    .tab-btn { padding:8px 20px;border:1.5px solid rgba(26,86,176,0.2);border-radius:10px;background:transparent;color:#1a56b0;font-size:0.88rem;font-weight:500;cursor:pointer;transition:all 0.2s; }
+    .tab-btn.active { background:linear-gradient(135deg,#1a56b0,#003087);color:white;border-color:transparent; }
+</style>
+
+<!-- BAŞLIK -->
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+    <div>
+        <h2 class="admin-panel-header mb-1" style="font-size:2rem;">Admin Panel</h2>
+        <div style="font-size:0.82rem;color:#aaa;">Full control over 7TepeOnline</div>
+    </div>
+    <div style="background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.2);border-radius:10px;padding:6px 16px;font-size:0.82rem;color:#e74c3c;font-weight:600;">🔴 Moderator Access</div>
+</div>
+
+<!-- İSTATİSTİKLER -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#1a56b0,#003087);box-shadow:0 6px 20px rgba(26,86,176,0.3);">
+            <div class="stat-num">{{ total_users }}</div>
+            <div class="stat-label">👥 Total Users</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#f093fb,#f5576c);box-shadow:0 6px 20px rgba(240,147,251,0.3);">
+            <div class="stat-num">{{ premium_users }}</div>
+            <div class="stat-label">⭐ Premium Users</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#f7971e,#ffd200);box-shadow:0 6px 20px rgba(247,151,30,0.3);">
+            <div class="stat-num">{{ educator_users }}</div>
+            <div class="stat-label">🎓 Educators</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#43e97b,#38f9d7);box-shadow:0 6px 20px rgba(67,233,123,0.3);">
+            <div class="stat-num">{{ total_rooms }}</div>
+            <div class="stat-label">🏠 Study Rooms</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#4facfe,#00f2fe);box-shadow:0 6px 20px rgba(79,172,254,0.3);">
+            <div class="stat-num">{{ total_lesson_rooms }}</div>
+            <div class="stat-label">📚 Lesson Rooms</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#ff7e5f,#feb47b);box-shadow:0 6px 20px rgba(255,126,95,0.3);">
+            <div class="stat-num">{{ pending_count }}</div>
+            <div class="stat-label">⏳ Pending Requests</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#a18cd1,#fbc2eb);box-shadow:0 6px 20px rgba(161,140,209,0.3);">
+            <div class="stat-num">{{ educator_requests|length }}</div>
+            <div class="stat-label">🎓 Educator Apps</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#00c6ff,#0072ff);box-shadow:0 6px 20px rgba(0,198,255,0.3);">
+            <div class="stat-num">{{ active_tutor_requests|length }}</div>
+            <div class="stat-label">📢 Tutor Requests</div>
+        </div>
+    </div>
+</div>
+
+<!-- TABS -->
+<div class="d-flex gap-2 flex-wrap mb-4">
+    <button class="tab-btn active" onclick="showTab('users', this)">👥 Users</button>
+    <button class="tab-btn" onclick="showTab('premium', this)">⭐ Premium</button>
+    <button class="tab-btn" onclick="showTab('educator', this)">🎓 Educators</button>
+    <button class="tab-btn" onclick="showTab('rooms', this)">🏠 Rooms</button>
+    <button class="tab-btn" onclick="showTab('tutor', this)">📢 Tutor Requests</button>
+    <button class="tab-btn" onclick="showTab('history', this)">📋 History</button>
+    <button class="tab-btn" onclick="showTab('analytics', this)">📊 Analytics</button>
+    <button class="tab-btn" onclick="showTab('kicklog', this)">🚫 Kick Log</button>
+    <button class="tab-btn" onclick="showTab('yeditepe', this)">🎓 Yeditepe</button>
+</div>
+
+<!-- TAB: USERS -->
+<div id="tab-users" class="section-card">
+    <div class="section-header">👥 All Users</div>
+    <div class="section-body" style="padding:0;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in all_users %}
+                <tr>
+                    <td>
+                        <div style="font-weight:600;color:#333;">{{ user.username }}</div>
+                        <div style="font-size:0.78rem;color:#aaa;">{{ user.email }}</div>
+                    </td>
+                    <td>{% user_badge user %}</td>
+                    <td style="color:#999;font-size:0.82rem;">{{ user.date_joined|date:"d M Y" }}</td>
+                    <td>
+                        <div class="d-flex gap-1 flex-wrap">
+                            {% if not user.is_staff %}
+                            <!-- Toggle Premium -->
+                            <form method="POST" style="margin:0;">{% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_premium">
+                                <input type="hidden" name="user_id" value="{{ user.id }}">
+                                <button type="submit" class="action-btn" style="background:{% if user.userprofile.is_premium %}rgba(231,76,60,0.1);color:#e74c3c;{% else %}rgba(26,86,176,0.1);color:#1a56b0;{% endif %}border:1px solid {% if user.userprofile.is_premium %}rgba(231,76,60,0.2){% else %}rgba(26,86,176,0.2){% endif %};">
+                                    {% if user.userprofile.is_premium %}⭐ Remove Premium{% else %}⭐ Give Premium{% endif %}
+                                </button>
+                            </form>
+                            <!-- Toggle Educator -->
+                            <form method="POST" style="margin:0;">{% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_educator">
+                                <input type="hidden" name="user_id" value="{{ user.id }}">
+                                <button type="submit" class="action-btn" style="background:{% if user.userprofile.is_educator %}rgba(231,76,60,0.1);color:#e74c3c;{% else %}rgba(247,151,30,0.1);color:#f7971e;{% endif %}border:1px solid {% if user.userprofile.is_educator %}rgba(231,76,60,0.2){% else %}rgba(247,151,30,0.25){% endif %};">
+                                    {% if user.userprofile.is_educator %}🎓 Remove Educator{% else %}🎓 Make Educator{% endif %}
+                                </button>
+                            </form>
+                            <!-- Delete -->
+                            <form method="POST" style="margin:0;" onsubmit="return confirm('Delete {{ user.username }}? This cannot be undone.')">{% csrf_token %}
+                                <input type="hidden" name="action" value="delete_user">
+                                <input type="hidden" name="user_id" value="{{ user.id }}">
+                                <button type="submit" class="action-btn" style="background:rgba(231,76,60,0.08);color:#e74c3c;border:1px solid rgba(231,76,60,0.15);">🗑 Delete</button>
+                            </form>
+                            {% else %}
+                            <span style="color:#aaa;font-size:0.8rem;">— Admin —</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center" style="padding:24px;color:#bbb;">No users yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB: PREMIUM REQUESTS -->
+<div id="tab-premium" class="section-card" style="display:none;">
+    <div class="section-header">⭐ Pending Premium Requests</div>
+    <div class="section-body" style="padding:0;">
+        <table class="admin-table">
+            <thead><tr><th>User</th><th>Plan</th><th>Date</th><th>Action</th></tr></thead>
+            <tbody>
+                {% for req in pending_requests %}
+                <tr>
+                    <td style="font-weight:500;">{{ req.user.username }} {% user_badge req.user %}</td>
+                    <td><span style="background:linear-gradient(135deg,#f093fb,#f5576c);color:white;border-radius:20px;padding:2px 10px;font-size:0.78rem;">{{ req.get_plan_display }}</span></td>
+                    <td style="color:#999;font-size:0.82rem;">{{ req.created_at|date:"d M Y H:i" }}</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <form method="POST" action="/admin-panel/approve/{{ req.id }}/" style="margin:0;">{% csrf_token %}
+                                <button class="action-btn" style="background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;">✓ Approve</button>
+                            </form>
+                            <form method="POST" action="/admin-panel/reject/{{ req.id }}/" style="margin:0;">{% csrf_token %}
+                                <button class="action-btn" style="background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.2);">✕ Reject</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center" style="padding:24px;color:#bbb;">No pending requests. ✅</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB: EDUCATOR REQUESTS -->
+<div id="tab-educator" class="section-card" style="display:none;">
+    <div class="section-header">🎓 Educator Applications</div>
+    <div class="section-body" style="padding:0;">
+        <table class="admin-table">
+            <thead><tr><th>User</th><th>Applied</th><th>Action</th></tr></thead>
+            <tbody>
+                {% for req in educator_requests %}
+                <tr>
+                    <td style="font-weight:500;">{{ req.user.username }} {% user_badge req.user %}</td>
+                    <td style="color:#999;font-size:0.82rem;">{{ req.created_at|timesince }} ago</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <form method="POST" action="/educator/approve/{{ req.id }}/" style="margin:0;">{% csrf_token %}
+                                <button class="action-btn" style="background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;">✓ Approve</button>
+                            </form>
+                            <form method="POST" action="/educator/reject/{{ req.id }}/" style="margin:0;">{% csrf_token %}
+                                <button class="action-btn" style="background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.2);">✕ Reject</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-center" style="padding:24px;color:#bbb;">No pending educator applications.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB: ROOMS -->
+<div id="tab-rooms" class="section-card" style="display:none;">
+    <div class="section-header">🏠 All Study Rooms</div>
+    <div class="section-body" style="padding:0;">
+        <table class="admin-table">
+            <thead><tr><th>Room</th><th>Subject</th><th>Creator</th><th>Type</th><th>Action</th></tr></thead>
+            <tbody>
+                {% for room in top_rooms %}
+                <tr>
+                    <td style="font-weight:500;">{{ room.title }}</td>
+                    <td><span style="background:rgba(26,86,176,0.08);color:#1a56b0;border:1px solid rgba(26,86,176,0.15);border-radius:20px;padding:2px 10px;font-size:0.78rem;">{{ room.subject }}</span></td>
+                    <td>{{ room.creator.username }} {% user_badge room.creator %}</td>
+                    <td>
+                        {% if room.is_premium_room %}
+                        <span style="background:rgba(247,151,30,0.1);color:#f7971e;border-radius:20px;padding:2px 10px;font-size:0.78rem;border:1px solid rgba(247,151,30,0.25);">⭐ Premium</span>
+                        {% else %}
+                        <span style="background:rgba(26,86,176,0.08);color:#1a56b0;border-radius:20px;padding:2px 10px;font-size:0.78rem;border:1px solid rgba(26,86,176,0.15);">Free</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="POST" style="margin:0;" onsubmit="return confirm('Delete this room?')">{% csrf_token %}
+                            <input type="hidden" name="action" value="delete_room">
+                            <input type="hidden" name="room_id" value="{{ room.id }}">
+                            <input type="hidden" name="user_id" value="0">
+                            <button class="action-btn" style="background:rgba(231,76,60,0.08);color:#e74c3c;border:1px solid rgba(231,76,60,0.15);">🗑 Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center" style="padding:24px;color:#bbb;">No rooms yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB: TUTOR REQUESTS -->
+<div id="tab-tutor" class="section-card" style="display:none;">
+    <div class="section-header">📢 Active Tutor Requests</div>
+    <div class="section-body" style="padding:0;">
+        <table class="admin-table">
+            <thead><tr><th>Student</th><th>Subject</th><th>Description</th><th>Posted</th></tr></thead>
+            <tbody>
+                {% for req in active_tutor_requests %}
+                <tr>
+                    <td style="font-weight:500;">{{ req.user.username }} {% user_badge req.user %}</td>
+                    <td style="color:#f7971e;font-weight:600;">{{ req.subject }}</td>
+                    <td style="color:#777;">{{ req.description|default:"—" }}</td>
+                    <td style="color:#999;font-size:0.82rem;">{{ req.created_at|timesince }} ago</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center" style="padding:24px;color:#bbb;">No active tutor requests.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+
+
+<!-- TAB: YEDITEPE -->
+<div id="tab-yeditepe" class="section-card" style="display:none;">
+    <div class="section-header">🎓 Yeditepe University Verifications</div>
+    <div class="section-body" style="padding:0;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Applied</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in yeditepe_verifications %}
+                <tr>
+                    <td style="font-weight:600;">{{ v.user.username }} {% user_badge v.user %}</td>
+                    <td style="color:#1a56b0;">{{ v.email }}</td>
+                    <td>
+                        {% if v.status == 'approved' %}
+                        <span style="background:#43e97b;color:white;border-radius:20px;padding:2px 10px;font-size:0.78rem;">✓ Approved</span>
+                        {% if v.expires_at %}<div style="font-size:0.75rem;color:#aaa;margin-top:2px;">Until {{ v.expires_at|date:"d M Y" }}</div>{% else %}<div style="font-size:0.75rem;color:#f7971e;margin-top:2px;">♾️ Lifetime</div>{% endif %}
+                        {% elif v.status == 'rejected' %}
+                        <span style="background:#e74c3c;color:white;border-radius:20px;padding:2px 10px;font-size:0.78rem;">✕ Rejected</span>
+                        {% else %}
+                        <span style="background:#f7971e;color:white;border-radius:20px;padding:2px 10px;font-size:0.78rem;">⏳ Pending</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:#aaa;font-size:0.82rem;">{{ v.created_at|timesince }} ago</td>
+                    <td>
+                        {% if v.status == 'pending' %}
+                        <div class="d-flex gap-2">
+                            <form method="POST" action="/verify-yeditepe/approve/{{ v.id }}/" style="margin:0;">{% csrf_token %}
+                                <button class="action-btn" style="background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;">✓ Approve</button>
+                            </form>
+                            <form method="POST" action="/verify-yeditepe/reject/{{ v.id }}/" style="margin:0;">{% csrf_token %}
+                                <button class="action-btn" style="background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.2);">✕ Reject</button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <span style="color:#bbb;font-size:0.82rem;">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" style="text-align:center;padding:32px;color:#bbb;">No verification requests yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB: KICK LOG -->
+<div id="tab-kicklog" class="section-card" style="display:none;">
+    <div class="section-header">🚫 Kick Log</div>
+    <div class="section-body" style="padding:0;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Kicked User</th>
+                    <th>Room</th>
+                    <th>Kicked By</th>
+                    <th>When</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in kick_logs %}
+                <tr>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#e74c3c,#c0392b);display:flex;align-items:center;justify-content:center;color:white;font-size:0.72rem;font-weight:700;">{{ log.kicked_user.username|first|upper }}</div>
+                            <span style="font-weight:600;color:#333;">{{ log.kicked_user.username }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <a href="/room/{{ log.room.id }}/" style="color:#1a56b0;text-decoration:none;font-weight:500;">{{ log.room.title }}</a>
+                        <div style="font-size:0.76rem;color:#aaa;">{{ log.room.subject }}</div>
+                    </td>
+                    <td>
+                        <span style="color:#f7971e;font-weight:500;">{{ log.kicked_by.username }}</span>
+                        {% user_badge log.kicked_by %}
+                    </td>
+                    <td style="color:#aaa;font-size:0.82rem;">{{ log.created_at|timesince }} ago</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align:center;padding:32px;color:#bbb;">No kick events recorded yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB: ANALYTICS -->
+<div id="tab-analytics" class="section-card" style="display:none;">
+    <div class="section-header">📊 Platform Analytics</div>
+    <div class="section-body">
+
+        <!-- Satır 1: Kullanıcı dağılımı + Plan dağılımı -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div style="background:#fafbff;border:1.5px solid rgba(26,86,176,0.12);border-radius:14px;padding:20px;">
+                    <div style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#1a56b0;font-size:0.95rem;margin-bottom:16px;">👥 User Type Distribution</div>
+                    <canvas id="userTypeChart" height="220"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div style="background:#fafbff;border:1.5px solid rgba(26,86,176,0.12);border-radius:14px;padding:20px;">
+                    <div style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#1a56b0;font-size:0.95rem;margin-bottom:16px;">⭐ Most Popular Premium Plans</div>
+                    <canvas id="planChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Satır 2: Günlük kayıt -->
+        <div class="row g-4 mb-4">
+            <div class="col-12">
+                <div style="background:#fafbff;border:1.5px solid rgba(26,86,176,0.12);border-radius:14px;padding:20px;">
+                    <div style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#1a56b0;font-size:0.95rem;margin-bottom:16px;">📈 New Registrations — Last 7 Days</div>
+                    <canvas id="regChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Satır 3: Ders talepleri + Oda konuları -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div style="background:#fafbff;border:1.5px solid rgba(26,86,176,0.12);border-radius:14px;padding:20px;">
+                    <div style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#1a56b0;font-size:0.95rem;margin-bottom:16px;">📢 Most Requested Subjects (Tutor)</div>
+                    <canvas id="subjectChart" height="220"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div style="background:#fafbff;border:1.5px solid rgba(26,86,176,0.12);border-radius:14px;padding:20px;">
+                    <div style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#1a56b0;font-size:0.95rem;margin-bottom:16px;">🏠 Study Room Subjects</div>
+                    <canvas id="roomSubjectChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Satır 4: Oda tipi dağılımı + Özet metrikler -->
+        <div class="row g-4">
+            <div class="col-md-5">
+                <div style="background:#fafbff;border:1.5px solid rgba(26,86,176,0.12);border-radius:14px;padding:20px;">
+                    <div style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#1a56b0;font-size:0.95rem;margin-bottom:16px;">🏠 Free vs Premium Rooms</div>
+                    <canvas id="roomTypeChart" height="220"></canvas>
+                </div>
+            </div>
+            <div class="col-md-7">
+                <div style="background:#fafbff;border:1.5px solid rgba(26,86,176,0.12);border-radius:14px;padding:20px;height:100%;">
+                    <div style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#1a56b0;font-size:0.95rem;margin-bottom:20px;">🔍 Key Insights</div>
+                    <div style="display:grid;gap:12px;">
+                        <div style="background:white;border-radius:12px;padding:14px 18px;border:1px solid rgba(26,86,176,0.1);display:flex;align-items:center;gap:12px;">
+                            <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#1a56b0,#003087);display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;flex-shrink:0;">📊</div>
+                            <div>
+                                <div style="font-size:0.82rem;color:#aaa;">Premium conversion rate</div>
+                                <div style="font-weight:700;color:#333;font-size:1.1rem;">
+                                    {% if total_users > 0 %}{{ premium_users|floatformat:0 }}/{{ total_users }} users ({% widthratio premium_users total_users 100 %}%){% else %}—{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="background:white;border-radius:12px;padding:14px 18px;border:1px solid rgba(26,86,176,0.1);display:flex;align-items:center;gap:12px;">
+                            <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#f7971e,#ffd200);display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;flex-shrink:0;">🎓</div>
+                            <div>
+                                <div style="font-size:0.82rem;color:#aaa;">Educator ratio</div>
+                                <div style="font-weight:700;color:#333;font-size:1.1rem;">
+                                    {% if total_users > 0 %}{{ educator_users }}/{{ total_users }} users ({% widthratio educator_users total_users 100 %}%){% else %}—{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="background:white;border-radius:12px;padding:14px 18px;border:1px solid rgba(26,86,176,0.1);display:flex;align-items:center;gap:12px;">
+                            <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#43e97b,#38f9d7);display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;flex-shrink:0;">🏠</div>
+                            <div>
+                                <div style="font-size:0.82rem;color:#aaa;">Avg rooms per user</div>
+                                <div style="font-weight:700;color:#333;font-size:1.1rem;">
+                                    {% if total_users > 0 %}{% widthratio total_rooms total_users 1 %} rooms/user{% else %}—{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="background:white;border-radius:12px;padding:14px 18px;border:1px solid rgba(26,86,176,0.1);display:flex;align-items:center;gap:12px;">
+                            <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#f093fb,#f5576c);display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;flex-shrink:0;">⏳</div>
+                            <div>
+                                <div style="font-size:0.82rem;color:#aaa;">Pending approval queue</div>
+                                <div style="font-weight:700;color:#333;font-size:1.1rem;">{{ pending_count }} premium + {{ educator_requests|length }} educator</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- TAB: HISTORY -->
+<div id="tab-history" class="section-card" style="display:none;">
+    <div class="section-header">📋 All Premium Request History</div>
+    <div class="section-body" style="padding:0;">
+        <table class="admin-table">
+            <thead><tr><th>User</th><th>Plan</th><th>Status</th><th>Applied</th><th>Reviewed</th></tr></thead>
+            <tbody>
+                {% for req in all_requests %}
+                <tr>
+                    <td style="font-weight:500;">{{ req.user.username }} {% user_badge req.user %}</td>
+                    <td style="font-size:0.85rem;">{{ req.get_plan_display }}</td>
+                    <td>
+                        {% if req.status == 'approved' %}
+                        <span style="background:#43e97b;color:white;border-radius:20px;padding:2px 10px;font-size:0.78rem;">✓ Approved</span>
+                        {% elif req.status == 'rejected' %}
+                        <span style="background:#e74c3c;color:white;border-radius:20px;padding:2px 10px;font-size:0.78rem;">✕ Rejected</span>
+                        {% else %}
+                        <span style="background:#f39c12;color:white;border-radius:20px;padding:2px 10px;font-size:0.78rem;">⏳ Pending</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:#999;font-size:0.82rem;">{{ req.created_at|date:"d M Y H:i" }}</td>
+                    <td style="color:#999;font-size:0.82rem;">{{ req.reviewed_at|date:"d M Y H:i"|default:"—" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center" style="padding:24px;color:#bbb;">No requests yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function showTab(name, btn) {
+    ['users','premium','educator','rooms','tutor','history','analytics','kicklog','yeditepe'].forEach(t => {
+        const el = document.getElementById('tab-' + t);
+        if (el) el.style.display = 'none';
+    });
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    const target = document.getElementById('tab-' + name);
+    if (target) target.style.display = 'block';
+    if (btn) btn.classList.add('active');
+}
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const COLORS = ['#1a56b0','#f5576c','#f7971e','#43e97b','#4facfe','#a18cd1','#ff7e5f','#00c6ff'];
+const GRAD_PURPLE = ['rgba(26,86,176,0.8)','rgba(0,48,135,0.8)'];
+
+// 1. User Type Doughnut
+new Chart(document.getElementById('userTypeChart'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ user_type_labels|safe }},
+        datasets: [{ data: {{ user_type_counts|safe }}, backgroundColor: ['#e0e0e0','#1a56b0','#f7971e'], borderWidth:0, hoverOffset:6 }]
+    },
+    options: { plugins: { legend: { position:'bottom', labels:{ padding:16, font:{size:12} } } }, cutout:'65%' }
+});
+
+// 2. Plan Bar
+new Chart(document.getElementById('planChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ plan_labels|safe }},
+        datasets: [{ label:'Approved', data: {{ plan_counts|safe }}, backgroundColor: ['#1a56b0','#f7971e','#43e97b'], borderRadius:8, borderSkipped:false }]
+    },
+    options: { plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, grid:{color:'rgba(0,0,0,0.05)'}, ticks:{stepSize:1}}, x:{grid:{display:false}} } }
+});
+
+// 3. Registration Line
+new Chart(document.getElementById('regChart'), {
+    type: 'line',
+    data: {
+        labels: {{ daily_labels|safe }},
+        datasets: [{
+            label:'New Users', data: {{ daily_regs|safe }},
+            borderColor:'#1a56b0', backgroundColor:'rgba(26,86,176,0.1)',
+            fill:true, tension:0.4, pointBackgroundColor:'#1a56b0', pointRadius:5, borderWidth:2
+        }]
+    },
+    options: { plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, grid:{color:'rgba(0,0,0,0.05)'}, ticks:{stepSize:1}}, x:{grid:{display:false}} } }
+});
+
+// 4. Tutor Subject Requests
+const subjectLabels = {{ subject_labels|safe }};
+if (subjectLabels.length > 0) {
+    new Chart(document.getElementById('subjectChart'), {
+        type: 'bar',
+        data: {
+            labels: subjectLabels,
+            datasets: [{ label:'Requests', data: {{ subject_counts|safe }}, backgroundColor: COLORS, borderRadius:8, borderSkipped:false }]
+        },
+        options: { indexAxis:'y', plugins:{legend:{display:false}}, scales:{ x:{beginAtZero:true, grid:{color:'rgba(0,0,0,0.05)'}}, y:{grid:{display:false}} } }
+    });
+} else {
+    document.getElementById('subjectChart').parentElement.innerHTML += '<p style="text-align:center;color:#bbb;font-size:0.85rem;padding:20px 0;">No tutor requests yet.</p>';
+    document.getElementById('subjectChart').style.display = 'none';
+}
+
+// 5. Room Subjects
+const roomSubjectLabels = {{ room_subject_labels|safe }};
+if (roomSubjectLabels.length > 0) {
+    new Chart(document.getElementById('roomSubjectChart'), {
+        type: 'bar',
+        data: {
+            labels: roomSubjectLabels,
+            datasets: [{ label:'Rooms', data: {{ room_subject_counts|safe }}, backgroundColor: COLORS.slice(2), borderRadius:8, borderSkipped:false }]
+        },
+        options: { indexAxis:'y', plugins:{legend:{display:false}}, scales:{ x:{beginAtZero:true, grid:{color:'rgba(0,0,0,0.05)'}}, y:{grid:{display:false}} } }
+    });
+} else {
+    document.getElementById('roomSubjectChart').parentElement.innerHTML += '<p style="text-align:center;color:#bbb;font-size:0.85rem;padding:20px 0;">No rooms yet.</p>';
+    document.getElementById('roomSubjectChart').style.display = 'none';
+}
+
+// 6. Free vs Premium Rooms Doughnut
+new Chart(document.getElementById('roomTypeChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Free Rooms','Premium Rooms'],
+        datasets: [{ data: [{{ free_room_count }}, {{ premium_room_count }}], backgroundColor:['#e0e0e0','#f7971e'], borderWidth:0, hoverOffset:6 }]
+    },
+    options: { plugins:{ legend:{ position:'bottom', labels:{ padding:16, font:{size:12} } } }, cutout:'65%' }
+});
+</script>
+
+{% endif %}
+{% endblock %}

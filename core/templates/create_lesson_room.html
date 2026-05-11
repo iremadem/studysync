@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+    .edit-input {
+        width: 100%; padding: 11px 16px;
+        border: 1.5px solid rgba(102,126,234,0.25);
+        border-radius: 10px; font-size: 0.97rem;
+        color: #333; background: #fafafa; outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .edit-input:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.12); background: #fff; }
+    .edit-label { font-size: 0.85rem; font-weight: 600; color: #555; margin-bottom: 6px; display: block; }
+    .hint { font-size: 0.78rem; color: #aaa; margin-top: 4px; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(102,126,234,0.08); }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-label { font-size: 0.9rem; color: #444; font-weight: 500; }
+    .toggle-desc { font-size: 0.78rem; color: #aaa; }
+</style>
+
+<div style="max-width:620px; margin:40px auto;">
+    <a href="/lesson-rooms/" style="color:#aaa;font-size:0.88rem;text-decoration:none;display:inline-block;margin-bottom:20px;">← Back to Live Tutoring</a>
+
+    <div style="background:white;border-radius:20px;padding:40px;box-shadow:0 10px 40px rgba(102,126,234,0.12);border:1.5px solid rgba(102,126,234,0.1);">
+
+        <div style="text-align:center;margin-bottom:32px;">
+            <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.6rem;box-shadow:0 6px 18px rgba(102,126,234,0.3);">🎓</div>
+            <h3 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:1.6rem;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;">
+                {% if room %}Edit Lesson Room{% else %}Create Lesson Room{% endif %}
+            </h3>
+            <p style="color:#aaa;font-size:0.9rem;">
+                {% if prefill.request_id %}
+                    Creating room for a student request — <strong style="color:#667eea;">{{ prefill.subject }}</strong>
+                {% else %}
+                    Configure your tutoring session settings.
+                {% endif %}
+            </p>
+            <div style="width:40px;height:3px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:2px;margin:14px auto 0;"></div>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            {% if prefill.request_id %}<input type="hidden" name="request_id" value="{{ prefill.request_id }}">{% endif %}
+
+            <div class="row g-3 mb-3">
+                <div class="col-12">
+                    <label class="edit-label">Room Title</label>
+                    <input class="edit-input" type="text" name="title" value="{% if room %}{{ room.title }}{% elif prefill.title %}{{ prefill.title }}{% endif %}" placeholder="e.g. Advanced Calculus Session" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="edit-label">Subject</label>
+                    <input class="edit-input" type="text" name="subject" value="{% if room %}{{ room.subject }}{% elif prefill.subject %}{{ prefill.subject }}{% endif %}" placeholder="e.g. Mathematics" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="edit-label">Max Students</label>
+                    <input class="edit-input" type="number" name="max_students" value="{% if room %}{{ room.max_students }}{% else %}2{% endif %}" min="1" max="10">
+                </div>
+                <div class="col-md-3">
+                    <label class="edit-label">Duration (min)</label>
+                    <input class="edit-input" type="number" name="duration_minutes" value="{% if room %}{{ room.duration_minutes }}{% else %}60{% endif %}" min="15" max="180">
+                </div>
+                <div class="col-12">
+                    <label class="edit-label">Description <span style="color:#aaa;font-weight:400;">(optional)</span></label>
+                    <textarea class="edit-input" name="description" rows="3" style="resize:vertical;" placeholder="Briefly describe what you'll cover...">{% if room %}{{ room.description }}{% endif %}</textarea>
+                </div>
+            </div>
+
+            <!-- Feature toggles -->
+            <div style="background:rgba(102,126,234,0.04);border:1.5px solid rgba(102,126,234,0.12);border-radius:14px;padding:16px 20px;margin-bottom:24px;">
+                <div style="font-size:0.82rem;font-weight:700;color:#667eea;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Room Features</div>
+
+                <div class="toggle-row">
+                    <div><div class="toggle-label">📷 Camera</div><div class="toggle-desc">Students can enable their cameras</div></div>
+                    <input type="checkbox" name="allow_camera" {% if not room or room.allow_camera %}checked{% endif %} style="width:18px;height:18px;accent-color:#667eea;cursor:pointer;">
+                </div>
+                <div class="toggle-row">
+                    <div><div class="toggle-label">🎤 Microphone</div><div class="toggle-desc">Students can use their microphones</div></div>
+                    <input type="checkbox" name="allow_mic" {% if not room or room.allow_mic %}checked{% endif %} style="width:18px;height:18px;accent-color:#667eea;cursor:pointer;">
+                </div>
+                <div class="toggle-row">
+                    <div><div class="toggle-label">💬 Live Chat</div><div class="toggle-desc">Text chat is available in the room</div></div>
+                    <input type="checkbox" name="allow_chat" {% if not room or room.allow_chat %}checked{% endif %} style="width:18px;height:18px;accent-color:#667eea;cursor:pointer;">
+                </div>
+                <div class="toggle-row">
+                    <div><div class="toggle-label">📝 Shared Notes</div><div class="toggle-desc">Collaborative notepad in the room</div></div>
+                    <input type="checkbox" name="allow_notes" {% if not room or room.allow_notes %}checked{% endif %} style="width:18px;height:18px;accent-color:#667eea;cursor:pointer;">
+                </div>
+                <div class="toggle-row">
+                    <div><div class="toggle-label">📎 File Sharing</div><div class="toggle-desc">Upload and share files during session</div></div>
+                    <input type="checkbox" name="allow_files" {% if not room or room.allow_files %}checked{% endif %} style="width:18px;height:18px;accent-color:#667eea;cursor:pointer;">
+                </div>
+                {% if room %}
+                <div class="toggle-row">
+                    <div><div class="toggle-label">✅ Active</div><div class="toggle-desc">Room is visible to students</div></div>
+                    <input type="checkbox" name="is_active" {% if room.is_active %}checked{% endif %} style="width:18px;height:18px;accent-color:#667eea;cursor:pointer;">
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="d-flex gap-3">
+                <button type="submit" class="btn flex-grow-1" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:12px;padding:13px;font-size:1rem;font-weight:600;box-shadow:0 4px 15px rgba(102,126,234,0.3);transition:transform 0.2s;"
+                onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    {% if room %}💾 Save Changes{% else %}🎓 Create Room{% endif %}
+                </button>
+                <a href="/lesson-rooms/" class="btn" style="background:transparent;color:#aaa;border:1.5px solid rgba(102,126,234,0.2);border-radius:12px;padding:13px 24px;font-size:1rem;">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

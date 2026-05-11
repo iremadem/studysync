@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+    .edit-input {
+        width: 100%;
+        padding: 11px 16px;
+        border: 1.5px solid rgba(102,126,234,0.25);
+        border-radius: 10px;
+        font-size: 0.97rem;
+        color: #333;
+        background: #fafafa;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        outline: none;
+    }
+    .edit-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+        background: #fff;
+    }
+    .edit-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 6px;
+        display: block;
+        letter-spacing: 0.3px;
+    }
+    .field-group { margin-bottom: 20px; }
+    .hint { font-size: 0.78rem; color: #aaa; margin-top: 4px; }
+</style>
+
+<!-- Başlık -->
+<div style="max-width:620px; margin:40px auto;">
+
+    <a href="/premium/" style="color:#aaa; font-size:0.88rem; text-decoration:none; display:inline-block; margin-bottom:20px;">
+        ← Back to Plans
+    </a>
+
+    <div style="
+        background:white;
+        border-radius:20px;
+        padding:40px;
+        box-shadow:0 10px 40px rgba(102,126,234,0.12);
+        border:1.5px solid rgba(102,126,234,0.1);
+    ">
+        <!-- İkon & Başlık -->
+        <div style="text-align:center; margin-bottom:32px;">
+            <div style="
+                width:60px; height:60px; border-radius:50%;
+                background:linear-gradient(135deg,#667eea,#764ba2);
+                display:flex; align-items:center; justify-content:center;
+                margin:0 auto 14px; font-size:1.6rem;
+                box-shadow:0 6px 18px rgba(102,126,234,0.3);
+            ">✏️</div>
+            <h3 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:1.6rem;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;">
+                Edit Plan
+            </h3>
+            <p style="color:#aaa;font-size:0.9rem;">Changes will be visible to all users immediately.</p>
+            <div style="width:40px;height:3px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:2px;margin:14px auto 0;"></div>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="row g-3">
+
+                <div class="col-md-6 field-group">
+                    <label class="edit-label">Plan Name</label>
+                    <input class="edit-input" type="text" name="name" value="{{ plan.name }}" required>
+                </div>
+
+                <div class="col-md-3 field-group">
+                    <label class="edit-label">Icon (emoji)</label>
+                    <input class="edit-input" type="text" name="icon" value="{{ plan.icon }}">
+                </div>
+
+                <div class="col-md-3 field-group">
+                    <label class="edit-label">Period</label>
+                    <input class="edit-input" type="text" name="period" value="{{ plan.period }}" placeholder="week / month / year">
+                </div>
+
+                <div class="col-md-6 field-group">
+                    <label class="edit-label">Price (₺)</label>
+                    <input class="edit-input" type="number" name="price" value="{{ plan.price }}" step="0.01" required>
+                </div>
+
+                <div class="col-md-6 field-group">
+                    <label class="edit-label">Promo Text <span style="color:#aaa;font-weight:400;">(optional)</span></label>
+                    <input class="edit-input" type="text" name="promo_text" value="{{ plan.promo_text }}" placeholder="e.g. 🎁 2 months free!">
+                </div>
+
+                <div class="col-12 field-group">
+                    <label class="edit-label">Features</label>
+                    <textarea class="edit-input" name="features" rows="5" style="resize:vertical;">{{ plan.features }}</textarea>
+                    <div class="hint">Write one feature per line. These will appear as ✅ checkmarks on the plan card.</div>
+                </div>
+
+                <div class="col-md-6 field-group">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" name="is_popular" {% if plan.is_popular %}checked{% endif %}
+                            style="width:18px;height:18px;accent-color:#667eea;">
+                        <span class="edit-label" style="margin:0;">Mark as Most Popular</span>
+                    </label>
+                    <div class="hint">Highlights this plan with a purple gradient card.</div>
+                </div>
+
+                <div class="col-md-6 field-group">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" name="has_priority_support" {% if plan.has_priority_support %}checked{% endif %}
+                            style="width:18px;height:18px;accent-color:#667eea;">
+                        <span class="edit-label" style="margin:0;">Includes Priority Support</span>
+                    </label>
+                    <div class="hint">Unchecked plans will show ❌ Priority support.</div>
+                </div>
+
+            </div>
+
+            <!-- Butonlar -->
+            <div class="d-flex gap-3 mt-3">
+                <button type="submit" class="btn flex-grow-1" style="
+                    background:linear-gradient(135deg,#667eea,#764ba2);
+                    color:white;border:none;border-radius:12px;padding:13px;
+                    font-size:1rem;font-weight:600;
+                    box-shadow:0 4px 15px rgba(102,126,234,0.3);
+                    transition:transform 0.2s;"
+                onmouseover="this.style.transform='translateY(-2px)'"
+                onmouseout="this.style.transform='translateY(0)'">
+                    💾 Save Changes
+                </button>
+                <a href="/premium/" class="btn" style="
+                    background:transparent;color:#aaa;
+                    border:1.5px solid rgba(102,126,234,0.2);
+                    border-radius:12px;padding:13px 24px;font-size:1rem;">
+                    Cancel
+                </a>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+{% endblock %}

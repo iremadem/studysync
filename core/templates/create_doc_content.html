@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+    .edit-input { width:100%;padding:11px 16px;border:1.5px solid rgba(102,126,234,0.25);border-radius:10px;font-size:0.97rem;color:#333;background:#fafafa;outline:none;transition:border-color 0.2s,box-shadow 0.2s; }
+    .edit-input:focus { border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,0.12);background:#fff; }
+    .edit-label { font-size:0.85rem;font-weight:600;color:#555;margin-bottom:6px;display:block; }
+    #videoSection { display:none; }
+    #noteSection { display:block; }
+</style>
+
+<div style="max-width:620px;margin:40px auto;">
+    <a href="/documentation/" style="color:#aaa;font-size:0.88rem;text-decoration:none;display:inline-block;margin-bottom:20px;">← Back to Documentation</a>
+
+    <div style="background:white;border-radius:20px;padding:40px;box-shadow:0 10px 40px rgba(102,126,234,0.12);border:1.5px solid rgba(102,126,234,0.1);">
+
+        <div style="text-align:center;margin-bottom:32px;">
+            <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.6rem;box-shadow:0 6px 18px rgba(102,126,234,0.3);">📄</div>
+            <h3 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:1.6rem;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;">Add Content</h3>
+            <p style="color:#aaa;font-size:0.9rem;">Create a course note or video resource for students.</p>
+            <div style="width:40px;height:3px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:2px;margin:14px auto 0;"></div>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <!-- Type selector -->
+            <div style="margin-bottom:24px;">
+                <label class="edit-label">Content Type</label>
+                <div class="d-flex gap-2">
+                    <button type="button" id="noteBtn" onclick="setType('note')" class="btn flex-grow-1" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:10px;padding:10px;font-size:0.92rem;font-weight:500;">📄 Course Note</button>
+                    <button type="button" id="videoBtn" onclick="setType('video')" class="btn flex-grow-1" style="background:rgba(102,126,234,0.08);color:#667eea;border:1.5px solid rgba(102,126,234,0.2);border-radius:10px;padding:10px;font-size:0.92rem;font-weight:500;">🎬 Video Resource</button>
+                </div>
+                <input type="hidden" name="content_type" id="contentTypeInput" value="note">
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <label class="edit-label">Subject</label>
+                <input class="edit-input" type="text" name="subject" placeholder="e.g. Mathematics, Python, Physics..." required>
+            </div>
+            <div style="margin-bottom:20px;">
+                <label class="edit-label">Title</label>
+                <input class="edit-input" type="text" name="title" placeholder="e.g. Calculus — Derivatives Explained" required>
+            </div>
+
+            <!-- Note body -->
+            <div id="noteSection" style="margin-bottom:20px;">
+                <label class="edit-label">Content</label>
+                <textarea class="edit-input" name="body" rows="8" style="resize:vertical;" placeholder="Write your course notes, explanations, formulas, examples..."></textarea>
+            </div>
+
+            <!-- Video URL -->
+            <div id="videoSection" style="margin-bottom:20px;">
+                <label class="edit-label">Video URL</label>
+                <input class="edit-input" type="url" name="video_url" placeholder="https://www.youtube.com/watch?v=...">
+                <div style="font-size:0.78rem;color:#aaa;margin-top:4px;">YouTube, Vimeo or any embeddable video URL</div>
+            </div>
+
+            <div style="margin-bottom:24px;display:flex;align-items:center;gap:10px;">
+                <input type="checkbox" name="is_premium" checked style="width:18px;height:18px;accent-color:#667eea;cursor:pointer;">
+                <div>
+                    <div style="font-size:0.88rem;font-weight:600;color:#555;">Premium Only</div>
+                    <div style="font-size:0.76rem;color:#aaa;">Only visible to premium members and educators</div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-3">
+                <button type="submit" class="btn flex-grow-1" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:12px;padding:13px;font-size:1rem;font-weight:600;box-shadow:0 4px 15px rgba(102,126,234,0.3);transition:transform 0.2s;"
+                onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    💾 Publish Content
+                </button>
+                <a href="/documentation/" class="btn" style="background:transparent;color:#aaa;border:1.5px solid rgba(102,126,234,0.2);border-radius:12px;padding:13px 24px;font-size:1rem;">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function setType(type) {
+    document.getElementById('contentTypeInput').value = type;
+    if (type === 'note') {
+        document.getElementById('noteSection').style.display = 'block';
+        document.getElementById('videoSection').style.display = 'none';
+        document.getElementById('noteBtn').style.cssText = 'background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:10px;padding:10px;font-size:0.92rem;font-weight:500;flex:1;';
+        document.getElementById('videoBtn').style.cssText = 'background:rgba(102,126,234,0.08);color:#667eea;border:1.5px solid rgba(102,126,234,0.2);border-radius:10px;padding:10px;font-size:0.92rem;font-weight:500;flex:1;';
+    } else {
+        document.getElementById('noteSection').style.display = 'none';
+        document.getElementById('videoSection').style.display = 'block';
+        document.getElementById('videoBtn').style.cssText = 'background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:10px;padding:10px;font-size:0.92rem;font-weight:500;flex:1;';
+        document.getElementById('noteBtn').style.cssText = 'background:rgba(102,126,234,0.08);color:#667eea;border:1.5px solid rgba(102,126,234,0.2);border-radius:10px;padding:10px;font-size:0.92rem;font-weight:500;flex:1;';
+    }
+}
+</script>
+
+{% endblock %}

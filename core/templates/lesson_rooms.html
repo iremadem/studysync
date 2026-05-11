@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% load user_tags %}
+{% block content %}
+
+<style>
+    .lesson-card {
+        background: white;
+        border-radius: 18px;
+        padding: 26px;
+        height: 100%;
+        border: 1.5px solid rgba(26,86,176,0.15);
+        box-shadow: 0 4px 20px rgba(26,86,176,0.08);
+        transition: transform 0.3s, box-shadow 0.3s;
+        position: relative;
+        overflow: hidden;
+    }
+    .lesson-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(135deg, #1a56b0, #003087);
+    }
+    .lesson-card:hover { transform: translateY(-5px); box-shadow: 0 12px 32px rgba(26,86,176,0.18); }
+    .feature-pill {
+        display: inline-flex; align-items: center; gap: 4px;
+        background: rgba(26,86,176,0.08); color: #1a56b0;
+        border: 1px solid rgba(26,86,176,0.15);
+        border-radius: 20px; padding: 3px 10px; font-size: 0.75rem;
+    }
+    .feature-pill.off { background: rgba(170,170,170,0.08); color: #bbb; border-color: rgba(170,170,170,0.15); text-decoration: line-through; }
+</style>
+
+<!-- HEADER -->
+<div class="text-center" style="padding:48px 20px 36px;">
+    <div style="font-size:0.78rem;color:#bbb;text-transform:uppercase;letter-spacing:2.5px;margin-bottom:12px;">One-on-One Sessions</div>
+    <h1 style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:2.6rem;background:linear-gradient(135deg,#1a56b0,#003087);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px;">Live Tutoring</h1>
+    <p style="color:#999;font-size:1rem;max-width:480px;margin:0 auto;">Find a tutor, join a session, and learn with direct expert guidance.</p>
+</div>
+
+<!-- EDUCATOR: oda oluştur + kontrol paneli -->
+{% if is_educator or is_admin %}
+<div style="background:linear-gradient(135deg,rgba(26,86,176,0.06),rgba(0,48,135,0.06));border:1.5px solid rgba(26,86,176,0.15);border-radius:18px;padding:24px 28px;margin-bottom:32px;">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <div style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:1.1rem;color:#1a56b0;">🎓 Educator Dashboard</div>
+            <div style="color:#aaa;font-size:0.85rem;margin-top:3px;">Create and manage your tutoring rooms.</div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="/lesson-rooms/create/" class="btn px-4 py-2" style="background:linear-gradient(135deg,#1a56b0,#003087);color:white;border:none;border-radius:12px;font-size:0.92rem;font-weight:500;box-shadow:0 4px 14px rgba(26,86,176,0.3);">
+                + Create Lesson Room
+            </a>
+            {% if tutor_requests %}
+            <button onclick="toggleTutorPanel()" class="btn px-3 py-2" style="background:rgba(247,151,30,0.1);color:#f7971e;border:1.5px solid rgba(247,151,30,0.25);border-radius:12px;font-size:0.88rem;">
+                📢 Student Requests
+                <span style="background:#f7971e;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:4px;">{{ tutor_requests|length }}</span>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Student Requests Panel -->
+    <div id="tutorPanel" style="display:none;margin-top:20px;border-top:1px solid rgba(26,86,176,0.1);padding-top:20px;">
+        <div style="font-weight:600;color:#555;font-size:0.9rem;margin-bottom:14px;">📢 Active Student Tutor Requests</div>
+        {% for req in tutor_requests %}
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(26,86,176,0.08);">
+            <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1a56b0,#003087);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.82rem;flex-shrink:0;">{{ req.user.username|first|upper }}</div>
+            <div style="flex:1;">
+                <div style="font-weight:600;color:#333;font-size:0.9rem;">{{ req.user.username }} {% user_badge req.user %}</div>
+                <div style="color:#f7971e;font-weight:600;font-size:0.85rem;">📚 {{ req.subject }}</div>
+                {% if req.description %}<div style="color:#777;font-size:0.82rem;">{{ req.description }}</div>{% endif %}
+                <div style="color:#bbb;font-size:0.76rem;margin-top:2px;">{{ req.created_at|timesince }} ago</div>
+            </div>
+            <a href="/lesson-rooms/create/?subject={{ req.subject|urlencode }}&title={{ req.subject|urlencode }}&request_id={{ req.id }}" style="
+                background:linear-gradient(135deg,#1a56b0,#003087);
+                color:white;border:none;border-radius:10px;
+                padding:8px 16px;font-size:0.82rem;font-weight:600;
+                text-decoration:none;white-space:nowrap;
+                box-shadow:0 3px 10px rgba(26,86,176,0.25);">
+                + Create Room
+            </a>
+        </div>
+        {% empty %}
+        <p style="color:#bbb;font-size:0.85rem;">No active requests.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- ADMIN: Educator başvuruları -->
+{% if is_admin and educator_requests %}
+<div style="background:white;border-radius:18px;border:1.5px solid rgba(26,86,176,0.15);box-shadow:0 4px 20px rgba(26,86,176,0.08);margin-bottom:28px;overflow:hidden;">
+    <div style="padding:14px 24px;background:linear-gradient(135deg,#1a56b0,#003087);color:white;font-family:'Playfair Display',Georgia,serif;font-style:italic;">
+        🎓 Educator Applications ({{ educator_requests|length }})
+    </div>
+    <div style="padding:20px 24px;">
+        {% for req in educator_requests %}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(26,86,176,0.08);">
+            <div>
+                <div style="font-weight:600;color:#333;">{{ req.user.username }} {% user_badge req.user %}</div>
+                <div style="font-size:0.8rem;color:#aaa;">{{ req.created_at|timesince }} ago</div>
+            </div>
+            <div class="d-flex gap-2">
+                <form method="POST" action="/educator/approve/{{ req.id }}/">{% csrf_token %}
+                    <button type="submit" style="background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;border:none;border-radius:10px;padding:7px 16px;font-size:0.85rem;cursor:pointer;font-weight:600;">✓ Approve</button>
+                </form>
+                <form method="POST" action="/educator/reject/{{ req.id }}/">{% csrf_token %}
+                    <button type="submit" style="background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.2);border-radius:10px;padding:7px 16px;font-size:0.85rem;cursor:pointer;">✕ Reject</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- PREMIUM: Tutor request post -->
+{% if is_premium and not is_educator and not is_admin %}
+<div style="background:rgba(26,86,176,0.05);border:1.5px solid rgba(26,86,176,0.15);border-radius:16px;padding:20px 26px;margin-bottom:28px;">
+    <div style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:1rem;color:#1a56b0;margin-bottom:6px;">📢 Looking for a tutor?</div>
+    <p style="color:#aaa;font-size:0.85rem;margin-bottom:14px;">Post a request and educators will see which subject you need help with.</p>
+    <div class="d-flex gap-2 flex-wrap">
+        <input id="tutorSubject" type="text" placeholder="Subject (e.g. Calculus, Python...)" style="flex:1;min-width:180px;padding:10px 16px;border:1.5px solid rgba(26,86,176,0.2);border-radius:10px;font-size:0.9rem;outline:none;">
+        <input id="tutorDesc" type="text" placeholder="Brief description (optional)" style="flex:2;min-width:180px;padding:10px 16px;border:1.5px solid rgba(26,86,176,0.2);border-radius:10px;font-size:0.9rem;outline:none;">
+        <button onclick="postTutorRequest()" style="padding:10px 20px;background:linear-gradient(135deg,#1a56b0,#003087);color:white;border:none;border-radius:10px;font-size:0.9rem;font-weight:500;cursor:pointer;white-space:nowrap;">📢 Post</button>
+    </div>
+    <div id="tutorMsg" style="margin-top:8px;font-size:0.85rem;display:none;"></div>
+</div>
+{% endif %}
+
+<!-- LESSON ROOM KARTLARI -->
+<div style="font-size:0.78rem;color:#bbb;text-transform:uppercase;letter-spacing:2px;margin-bottom:18px;">Available Sessions</div>
+
+{% if not is_premium and not is_educator and not is_admin %}
+<!-- NORMAL STUDENT: buğulu kilitli görünüm -->
+<div style="margin-bottom:24px; text-align:center;">
+    <div style="display:inline-block; background:rgba(231,76,60,0.08); border:1.5px solid rgba(231,76,60,0.2); border-radius:14px; padding:12px 28px; color:#e74c3c; font-size:0.92rem;">
+        🔒 Premium membership required to join live tutoring sessions.
+        <a href="/premium/" style="color:#1a56b0; font-weight:600; margin-left:6px;">Upgrade now →</a>
+    </div>
+</div>
+<div style="opacity:0.5; pointer-events:none; user-select:none; filter:blur(3px);">
+<div class="row g-4">
+{% for room in lesson_rooms %}
+<div class="col-md-6">
+    <div class="lesson-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f7971e,#ffd200);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.8rem;">{{ room.educator.username|first|upper }}</div>
+            <div style="font-size:0.82rem;font-weight:600;color:#555;">{{ room.educator.username }} <span style="color:#f7971e;font-size:0.72rem;">● Educator</span></div>
+        </div>
+        <div style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:1.1rem;color:#333;margin-bottom:6px;">{{ room.title }}</div>
+        <div style="display:inline-block;background:rgba(26,86,176,0.08);color:#1a56b0;border:1px solid rgba(26,86,176,0.15);border-radius:20px;padding:2px 12px;font-size:0.78rem;font-weight:600;margin-bottom:10px;">{{ room.subject }}</div>
+        <div style="font-size:0.8rem;color:#aaa;margin-bottom:16px;">👥 Max {{ room.max_students }} &nbsp;·&nbsp; ⏱ {{ room.duration_minutes }} min</div>
+        <div style="height:38px;background:linear-gradient(135deg,#1a56b0,#003087);border-radius:10px;opacity:0.5;"></div>
+    </div>
+</div>
+{% empty %}
+<div class="col-12 text-center" style="padding:40px 0;">
+    <div style="font-size:2.5rem;">🎓</div>
+    <p style="color:#aaa;">No sessions yet.</p>
+</div>
+{% endfor %}
+</div>
+</div>
+
+{% else %}
+<!-- PREMIUM / EDUCATOR / ADMIN: gerçek odalar -->
+<div class="row g-4">
+{% for room in lesson_rooms %}
+<div class="col-md-6">
+    <div class="lesson-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f7971e,#ffd200);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.8rem;">{{ room.educator.username|first|upper }}</div>
+            <div>
+                <div style="font-size:0.82rem;font-weight:600;color:#555;">{{ room.educator.username }} <span style="color:#f7971e;font-size:0.72rem;">● Educator</span></div>
+            </div>
+            {% if room.educator == request.user or is_admin %}
+            <div class="ms-auto d-flex gap-1">
+                <a href="/lesson-rooms/{{ room.id }}/edit/" style="background:rgba(26,86,176,0.1);color:#1a56b0;border:1px solid rgba(26,86,176,0.2);border-radius:8px;padding:4px 10px;font-size:0.75rem;text-decoration:none;">✏️ Edit</a>
+                <form method="POST" action="/lesson-rooms/{{ room.id }}/delete/" style="margin:0;">{% csrf_token %}
+                    <button type="submit" onclick="return confirm('Delete this room?')" style="background:rgba(231,76,60,0.08);color:#e74c3c;border:1px solid rgba(231,76,60,0.15);border-radius:8px;padding:4px 10px;font-size:0.75rem;cursor:pointer;">🗑</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        <div style="font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:1.1rem;color:#333;margin-bottom:6px;">{{ room.title }}</div>
+        <div style="display:inline-block;background:rgba(26,86,176,0.08);color:#1a56b0;border:1px solid rgba(26,86,176,0.15);border-radius:20px;padding:2px 12px;font-size:0.78rem;font-weight:600;margin-bottom:10px;">{{ room.subject }}</div>
+        {% if room.description %}
+        <p style="color:#888;font-size:0.86rem;line-height:1.55;margin-bottom:12px;">{{ room.description }}</p>
+        {% endif %}
+        <div style="font-size:0.8rem;color:#aaa;margin-bottom:12px;">👥 Max {{ room.max_students }} &nbsp;·&nbsp; ⏱ {{ room.duration_minutes }} min</div>
+        <div class="d-flex flex-wrap gap-1" style="margin-bottom:16px;">
+            <span class="feature-pill {% if not room.allow_camera %}off{% endif %}">📷 Camera</span>
+            <span class="feature-pill {% if not room.allow_mic %}off{% endif %}">🎤 Mic</span>
+            <span class="feature-pill {% if not room.allow_chat %}off{% endif %}">💬 Chat</span>
+            <span class="feature-pill {% if not room.allow_notes %}off{% endif %}">📝 Notes</span>
+            <span class="feature-pill {% if not room.allow_files %}off{% endif %}">📎 Files</span>
+        </div>
+
+        {% if room.educator == request.user or is_admin %}
+        <div style="background:rgba(26,86,176,0.06);border:1px solid rgba(26,86,176,0.15);border-radius:10px;padding:8px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:0.72rem;color:#aaa;text-transform:uppercase;letter-spacing:1px;">🔑 Invite Code</span>
+            <span style="font-family:monospace;font-weight:700;letter-spacing:3px;color:#1a56b0;">{{ room.invite_code }}</span>
+            <button onclick="navigator.clipboard.writeText('{{ room.invite_code }}');this.innerText='Copied!';setTimeout(()=>this.innerText='Copy',2000)" style="background:rgba(26,86,176,0.1);border:1px solid rgba(26,86,176,0.2);color:#1a56b0;border-radius:6px;padding:2px 10px;font-size:0.75rem;cursor:pointer;">Copy</button>
+        </div>
+        {% endif %}
+
+        {% if room.educator == request.user or is_admin %}
+        <a href="/lesson-rooms/{{ room.id }}/" class="btn w-100" style="background:linear-gradient(135deg,#1a56b0,#003087);color:white;border:none;border-radius:10px;font-size:0.9rem;font-weight:500;padding:10px;box-shadow:0 3px 12px rgba(26,86,176,0.25);">Enter Room →</a>
+        {% else %}
+        <a href="/lesson-rooms/{{ room.id }}/" class="btn w-100" style="background:transparent;color:#1a56b0;border:1.5px solid rgba(26,86,176,0.3);border-radius:10px;font-size:0.9rem;font-weight:500;padding:10px;">🔑 Enter with Code</a>
+        {% endif %}
+    </div>
+</div>
+{% empty %}
+<div class="col-12 text-center" style="padding:60px 0;">
+    <div style="font-size:3rem;margin-bottom:16px;">🎓</div>
+    <p style="color:#aaa;">No tutoring sessions available yet.
+    {% if is_educator or is_admin %}<a href="/lesson-rooms/create/" style="color:#1a56b0;font-weight:600;">Create the first one!</a>{% endif %}
+    </p>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+<div style="margin-bottom:30px;"></div>
+
+<script>
+function toggleTutorPanel() {
+    const p = document.getElementById('tutorPanel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+function postTutorRequest() {
+    const subject = document.getElementById('tutorSubject').value.trim();
+    const desc = document.getElementById('tutorDesc').value.trim();
+    const msg = document.getElementById('tutorMsg');
+    if (!subject) { msg.style.display='block'; msg.style.color='#e74c3c'; msg.innerText='Please enter a subject.'; return; }
+    fetch('/tutor-requests/post/', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+        body:JSON.stringify({subject,description:desc})
+    }).then(r=>r.json()).then(data=>{
+        msg.style.display='block';
+        if(data.status==='ok'){msg.style.color='#43e97b';msg.innerText='✓ Request posted! Educators can see it.';document.getElementById('tutorSubject').value='';document.getElementById('tutorDesc').value='';}
+        else{msg.style.color='#e74c3c';msg.innerText='⚠️ '+(data.error||'Error');}
+    });
+}
+</script>
+
+{% endblock %}

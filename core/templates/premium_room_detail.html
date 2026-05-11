@@ -1,0 +1,526 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+    .panel {
+        background: white;
+        border-radius: 16px;
+        border: 1.5px solid rgba(102,126,234,0.15);
+        box-shadow: 0 4px 20px rgba(102,126,234,0.08);
+        overflow: hidden;
+    }
+    .panel-header {
+        padding: 14px 20px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        font-family: 'Playfair Display', Georgia, serif;
+        font-style: italic;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    .panel-body { padding: 16px; }
+    .chat-msg {
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(102,126,234,0.06);
+        font-size: 0.86rem;
+        line-height: 1.5;
+    }
+    .chat-msg:last-child { border-bottom: none; }
+    .chat-msg strong { color: #667eea; }
+    #notes {
+        width: 100%; border: none; outline: none;
+        resize: none; font-size: 0.9rem; color: #444;
+        line-height: 1.7; height: 220px; font-family: inherit;
+    }
+    #chatInput {
+        width: 100%; padding: 10px 14px;
+        border: 1.5px solid rgba(102,126,234,0.2);
+        border-radius: 10px; font-size: 0.9rem; outline: none;
+        transition: border-color 0.2s;
+    }
+    #chatInput:focus { border-color: #667eea; }
+    .media-btn {
+        width: 48px; height: 48px; border-radius: 50%;
+        border: none; cursor: pointer; font-size: 1.2rem;
+        display: flex; align-items: center; justify-content: center;
+        transition: transform 0.2s, opacity 0.2s;
+        flex-shrink: 0;
+    }
+    .media-btn:hover { transform: scale(1.1); }
+    .media-btn.off { opacity: 0.45; }
+    .video-box {
+        border-radius: 12px;
+        background: #111;
+        overflow: hidden;
+        aspect-ratio: 16/9;
+        position: relative;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .video-box video { width: 100%; height: 100%; object-fit: cover; }
+    .video-label {
+        position: absolute; bottom: 8px; left: 10px;
+        background: rgba(0,0,0,0.5);
+        color: white; font-size: 0.75rem;
+        padding: 2px 8px; border-radius: 6px;
+    }
+    .video-placeholder {
+        color: #555; font-size: 2rem; text-align: center;
+    }
+    .timer-btn {
+        padding: 8px 18px; border: none;
+        border-radius: 10px; font-size: 0.88rem;
+        font-weight: 500; cursor: pointer;
+        transition: transform 0.2s, opacity 0.2s;
+    }
+    .timer-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+    .timer-display {
+        font-size: 3rem; font-weight: 700;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        text-align: center; margin: 12px 0;
+        font-family: 'Playfair Display', Georgia, serif; font-style: italic;
+    }
+    .mode-btn {
+        padding: 8px 20px; border: 1.5px solid rgba(102,126,234,0.3);
+        border-radius: 10px; background: transparent; color: #667eea;
+        font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s;
+    }
+    .mode-btn.active, .mode-btn:hover {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white; border-color: transparent;
+    }
+    .pomo-input {
+        padding: 9px 14px; border: 1.5px solid rgba(102,126,234,0.2);
+        border-radius: 10px; font-size: 0.9rem; outline: none;
+        width: 100%; transition: border-color 0.2s;
+    }
+    .pomo-input:focus { border-color: #667eea; }
+</style>
+
+<!-- ROOM HEADER -->
+<div style="
+    border-radius: 18px;
+    background: {{ room.gradient }};
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    position: relative; overflow: hidden;
+    box-shadow: 0 8px 28px rgba(102,126,234,0.3);
+">
+    <div style="position:absolute; top:-30px; right:-30px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.07);"></div>
+    <div style="position:absolute; bottom:-20px; left:-20px; width:90px; height:90px; border-radius:50%; background:rgba(255,255,255,0.05);"></div>
+    <div class="d-flex align-items-center gap-3">
+        <span style="font-size:2rem;">{{ room.icon }}</span>
+        <div>
+            <div style="font-size:0.75rem; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:4px;">⭐ Premium Room · {{ room.duration }}</div>
+            <h2 style="font-family:'Playfair Display',Georgia,serif; font-style:italic; color:white; margin:0; font-size:1.7rem;">{{ room.title }}</h2>
+            <p style="color:rgba(255,255,255,0.75); margin:6px 0 0; font-size:0.9rem;">{{ room.description }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- VIDEO SECTION -->
+<div class="panel mb-4">
+    <div class="panel-header">📹 Live Session</div>
+    <div class="panel-body">
+
+        <!-- Video alanları -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="video-box" id="localVideoBox">
+                    <div class="video-placeholder">
+                        <div>📷</div>
+                        <div style="font-size:0.8rem; color:#777; margin-top:8px;">Your camera is off</div>
+                    </div>
+                    <video id="localVideo" autoplay muted style="display:none;"></video>
+                    <div class="video-label">You</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="video-box">
+                    <div class="video-placeholder">
+                        <div>👤</div>
+                        <div style="font-size:0.8rem; color:#777; margin-top:8px;">Waiting for tutor...</div>
+                    </div>
+                    <div class="video-label">Tutor</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kontrol butonları -->
+        <div class="d-flex align-items-center gap-3 justify-content-center">
+            <button id="camBtn" class="media-btn off" onclick="toggleCamera()" title="Toggle Camera"
+                style="background: linear-gradient(135deg, #667eea, #764ba2); color:white;">
+                📷
+            </button>
+            <button id="micBtn" class="media-btn off" onclick="toggleMic()" title="Toggle Microphone"
+                style="background: linear-gradient(135deg, #43e97b, #38f9d7); color:white;">
+                🎤
+            </button>
+            <button onclick="endSession()" class="media-btn"
+                style="background: linear-gradient(135deg, #ff7e5f, #feb47b); color:white;" title="End Session">
+                📵
+            </button>
+            <div id="sessionStatus" style="font-size:0.82rem; color:#aaa; margin-left:8px;">
+                Camera & mic are off
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- NOTES + CHAT -->
+<div class="row g-4 mb-4">
+
+    <div class="col-md-6">
+        <div class="panel" style="height:300px;">
+            <div class="panel-header">📝 Shared Notes</div>
+            <div class="panel-body" style="height:calc(100% - 49px);">
+                <textarea id="notes" placeholder="Take notes during your session..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="panel" style="height:300px; display:flex; flex-direction:column;">
+            <div class="panel-header">💬 Session Chat</div>
+            <div id="chatBox" class="panel-body" style="flex:1; overflow-y:auto;">
+                <p style="color:#bbb; font-size:0.85rem; text-align:center; margin-top:20px;">Session chat is ready. Say hello!</p>
+            </div>
+            <div style="padding:12px; border-top:1px solid rgba(102,126,234,0.1);">
+                <div class="d-flex gap-2">
+                    <input id="chatInput" type="text" placeholder="Write a message...">
+                    <button type="button" onclick="sendMessage()" style="
+                        padding: 10px 16px; background: linear-gradient(135deg, #667eea, #764ba2);
+                        color: white; border: none; border-radius: 10px;
+                        font-size: 0.9rem; cursor: pointer; white-space: nowrap;">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- PDF SHARING -->
+<div class="panel mb-4">
+    <div class="panel-header">📄 PDF Sharing</div>
+    <div class="panel-body">
+
+        <!-- Upload area -->
+        <div id="pdfDropZone" onclick="document.getElementById('pdfInput').click()" style="
+            border: 2px dashed rgba(102,126,234,0.3);
+            border-radius: 14px;
+            padding: 28px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            margin-bottom: 20px;
+        "
+        onmouseover="this.style.borderColor='#667eea'; this.style.background='rgba(102,126,234,0.04)'"
+        onmouseout="this.style.borderColor='rgba(102,126,234,0.3)'; this.style.background='transparent'"
+        ondragover="event.preventDefault(); this.style.borderColor='#667eea'; this.style.background='rgba(102,126,234,0.06)'"
+        ondrop="handleDrop(event)">
+            <div style="font-size:2.2rem; margin-bottom:10px;">📄</div>
+            <div style="font-weight:600; color:#667eea; margin-bottom:4px;">Click or drag a PDF here</div>
+            <div style="font-size:0.82rem; color:#aaa;">Share documents, notes, or study materials with your tutor</div>
+            <input type="file" id="pdfInput" accept=".pdf" style="display:none;" onchange="loadPDF(this.files[0])">
+        </div>
+
+        <!-- PDF list -->
+        <div id="pdfList" style="display:none; margin-bottom:16px;">
+            <div style="font-size:0.8rem; color:#aaa; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">Shared Documents</div>
+            <div id="pdfItems"></div>
+        </div>
+
+        <!-- PDF viewer -->
+        <div id="pdfViewer" style="display:none;">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div id="pdfFileName" style="font-weight:600; color:#333; font-size:0.95rem;"></div>
+                <div class="d-flex gap-2 align-items-center">
+                    <button onclick="prevPage()" class="timer-btn" style="background:linear-gradient(135deg,#667eea,#764ba2); color:white; padding:6px 14px;">‹ Prev</button>
+                    <span id="pageInfo" style="font-size:0.85rem; color:#777; white-space:nowrap;">Page 1 / 1</span>
+                    <button onclick="nextPage()" class="timer-btn" style="background:linear-gradient(135deg,#667eea,#764ba2); color:white; padding:6px 14px;">Next ›</button>
+                    <button onclick="closePDF()" style="background:rgba(255,126,95,0.1); color:#ff7e5f; border:1px solid rgba(255,126,95,0.2); border-radius:8px; padding:6px 12px; cursor:pointer; font-size:0.85rem;">✕ Close</button>
+                </div>
+            </div>
+            <div style="border-radius:12px; overflow:hidden; border:1.5px solid rgba(102,126,234,0.15); background:#f8f9fa;">
+                <canvas id="pdfCanvas" style="width:100%; display:block;"></canvas>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- TIMER -->
+<div class="panel">
+    <div class="panel-header">⏱ Focus Tools</div>
+    <div class="panel-body">
+        <div class="d-flex gap-2 mb-4">
+            <button class="mode-btn active" id="btnTimer" onclick="showTimer()">Timer</button>
+            <button class="mode-btn" id="btnPomodoro" onclick="showPomodoro()">Pomodoro</button>
+        </div>
+
+        <div id="timerSection">
+            <div class="timer-display" id="timer">00:00</div>
+            <div class="d-flex gap-2 justify-content-center flex-wrap">
+                <button onclick="startTimer()" class="timer-btn" style="background:linear-gradient(135deg,#43e97b,#38f9d7); color:white;">▶ Start</button>
+                <button onclick="pauseTimer()" class="timer-btn" style="background:linear-gradient(135deg,#f7971e,#ffd200); color:white;">⏸ Pause</button>
+                <button onclick="resumeTimer()" class="timer-btn" style="background:linear-gradient(135deg,#00c6ff,#0072ff); color:white;">↺ Resume</button>
+                <button onclick="resetTimer()" class="timer-btn" style="background:linear-gradient(135deg,#ff7e5f,#feb47b); color:white;">✕ Reset</button>
+            </div>
+        </div>
+
+        <div id="pomodoroSection" style="display:none;">
+            <div style="text-align:center; font-size:0.85rem; color:#aaa; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:4px;" id="phaseLabel">Mode: Work</div>
+            <div class="timer-display" id="pomodoroTimer">00:00</div>
+            <div class="row g-2 mb-3" style="max-width:320px; margin:0 auto;">
+                <div class="col-6"><input id="workInput" class="pomo-input" placeholder="Work (min)" type="number"></div>
+                <div class="col-6"><input id="breakInput" class="pomo-input" placeholder="Break (min)" type="number"></div>
+            </div>
+            <div class="d-flex gap-2 justify-content-center flex-wrap">
+                <button onclick="startPomodoro()" class="timer-btn" style="background:linear-gradient(135deg,#43e97b,#38f9d7); color:white;">▶ Start</button>
+                <button onclick="pausePomodoro()" class="timer-btn" style="background:linear-gradient(135deg,#f7971e,#ffd200); color:white;">⏸ Pause</button>
+                <button onclick="resumePomodoro()" class="timer-btn" style="background:linear-gradient(135deg,#00c6ff,#0072ff); color:white;">↺ Resume</button>
+                <button onclick="resetPomodoro()" class="timer-btn" style="background:linear-gradient(135deg,#ff7e5f,#feb47b); color:white;">✕ Reset</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="margin-bottom:30px;"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+// ── CAMERA & MIC ──
+let localStream = null;
+let camOn = false;
+let micOn = false;
+
+async function toggleCamera() {
+    const btn = document.getElementById('camBtn');
+    const video = document.getElementById('localVideo');
+    const placeholder = document.querySelector('#localVideoBox .video-placeholder');
+
+    if (!camOn) {
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: micOn });
+            video.srcObject = localStream;
+            video.style.display = 'block';
+            placeholder.style.display = 'none';
+            camOn = true;
+            btn.classList.remove('off');
+            btn.innerHTML = '📸';
+            updateStatus();
+        } catch(e) {
+            alert('Camera access denied. Please allow camera access in your browser settings.');
+        }
+    } else {
+        localStream.getVideoTracks().forEach(t => t.stop());
+        video.style.display = 'none';
+        placeholder.style.display = 'flex';
+        camOn = false;
+        btn.classList.add('off');
+        btn.innerHTML = '📷';
+        updateStatus();
+    }
+}
+
+async function toggleMic() {
+    const btn = document.getElementById('micBtn');
+
+    if (!micOn) {
+        try {
+            const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            if (localStream) {
+                audioStream.getAudioTracks().forEach(t => localStream.addTrack(t));
+            } else {
+                localStream = audioStream;
+            }
+            micOn = true;
+            btn.classList.remove('off');
+            btn.innerHTML = '🎙️';
+            updateStatus();
+        } catch(e) {
+            alert('Microphone access denied. Please allow microphone access in your browser settings.');
+        }
+    } else {
+        if (localStream) {
+            localStream.getAudioTracks().forEach(t => t.stop());
+        }
+        micOn = false;
+        btn.classList.add('off');
+        btn.innerHTML = '🎤';
+        updateStatus();
+    }
+}
+
+function updateStatus() {
+    const el = document.getElementById('sessionStatus');
+    if (camOn && micOn) el.innerHTML = '<span style="color:#43e97b;">● Live — Camera & mic on</span>';
+    else if (camOn) el.innerHTML = '<span style="color:#667eea;">● Camera on · Mic off</span>';
+    else if (micOn) el.innerHTML = '<span style="color:#43e97b;">● Mic on · Camera off</span>';
+    else el.innerHTML = 'Camera & mic are off';
+}
+
+function endSession() {
+    if (localStream) localStream.getTracks().forEach(t => t.stop());
+    camOn = false; micOn = false;
+    document.getElementById('localVideo').style.display = 'none';
+    document.querySelector('#localVideoBox .video-placeholder').style.display = 'flex';
+    document.getElementById('camBtn').classList.add('off');
+    document.getElementById('micBtn').classList.add('off');
+    document.getElementById('camBtn').innerHTML = '📷';
+    document.getElementById('micBtn').innerHTML = '🎤';
+    updateStatus();
+}
+
+// ── PDF VIEWER ──
+let pdfDoc = null, currentPage = 1, totalPages = 0;
+const pdfjsLib = window['pdfjs-dist/build/pdf'];
+if (pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+function handleDrop(e) {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === 'application/pdf') loadPDF(file);
+}
+
+function loadPDF(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const typedArray = new Uint8Array(e.target.result);
+        pdfjsLib.getDocument(typedArray).promise.then(function(pdf) {
+            pdfDoc = pdf;
+            totalPages = pdf.numPages;
+            currentPage = 1;
+
+            // Listeye ekle
+            addToPDFList(file.name);
+
+            // Viewer aç
+            document.getElementById('pdfFileName').innerText = '📄 ' + file.name;
+            document.getElementById('pdfViewer').style.display = 'block';
+            renderPage(currentPage);
+        }).catch(function() {
+            alert('Could not load PDF. Please try again.');
+        });
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function addToPDFList(name) {
+    const list = document.getElementById('pdfList');
+    const items = document.getElementById('pdfItems');
+    list.style.display = 'block';
+    items.innerHTML += `
+        <div style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:rgba(102,126,234,0.06); border-radius:10px; margin-bottom:8px; border:1px solid rgba(102,126,234,0.12);">
+            <span style="font-size:1.2rem;">📄</span>
+            <span style="font-size:0.88rem; color:#555; flex:1;">${name}</span>
+            <span style="font-size:0.75rem; color:#aaa; background:linear-gradient(135deg,rgba(102,126,234,0.1),rgba(118,75,162,0.1)); padding:2px 10px; border-radius:12px;">Shared</span>
+        </div>`;
+}
+
+function renderPage(num) {
+    pdfDoc.getPage(num).then(function(page) {
+        const canvas = document.getElementById('pdfCanvas');
+        const ctx = canvas.getContext('2d');
+        const viewport = page.getViewport({ scale: 1.5 });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        page.render({ canvasContext: ctx, viewport: viewport });
+        document.getElementById('pageInfo').innerText = `Page ${num} / ${totalPages}`;
+    });
+}
+
+function prevPage() {
+    if (currentPage <= 1) return;
+    currentPage--;
+    renderPage(currentPage);
+}
+
+function nextPage() {
+    if (currentPage >= totalPages) return;
+    currentPage++;
+    renderPage(currentPage);
+}
+
+function closePDF() {
+    document.getElementById('pdfViewer').style.display = 'none';
+    pdfDoc = null;
+}
+
+// ── CHAT ──
+function sendMessage() {
+    let input = document.getElementById('chatInput');
+    let msg = input.value.trim();
+    if (!msg) return;
+    let chatBox = document.getElementById('chatBox');
+    chatBox.innerHTML += `<div class="chat-msg"><strong>You</strong>&nbsp; ${msg}</div>`;
+    input.value = '';
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+document.getElementById('chatInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') sendMessage();
+});
+
+// ── TIMER ──
+let interval = null, time = 0;
+function updateTimer() {
+    let m = Math.floor(time/60), s = time%60;
+    document.getElementById('timer').innerText = m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');
+}
+function startTimer() { clearInterval(interval); interval = setInterval(()=>{ time++; updateTimer(); }, 1000); }
+function pauseTimer() { clearInterval(interval); }
+function resumeTimer() { startTimer(); }
+function resetTimer() { clearInterval(interval); time=0; updateTimer(); }
+
+// ── POMODORO ──
+let timeLeft=0, workTime=0, breakTime=0, phase='work';
+function updatePomodoro() {
+    let m=Math.floor(timeLeft/60), s=timeLeft%60;
+    document.getElementById('pomodoroTimer').innerText = m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');
+    document.getElementById('phaseLabel').innerText = 'Mode: ' + phase.toUpperCase();
+}
+function startPomodoro() {
+    workTime = parseInt(document.getElementById('workInput').value)*60;
+    breakTime = parseInt(document.getElementById('breakInput').value)*60;
+    if (!workTime || !breakTime) { alert('Enter values'); return; }
+    phase='work'; timeLeft=workTime; clearInterval(interval);
+    interval = setInterval(()=>{
+        timeLeft--; updatePomodoro();
+        if (timeLeft<=0) {
+            if (phase==='work') { phase='break'; timeLeft=breakTime; alert('Break time!'); }
+            else { phase='work'; timeLeft=workTime; alert('Back to work!'); }
+        }
+    }, 1000);
+}
+function pausePomodoro() { clearInterval(interval); }
+function resumePomodoro() {
+    clearInterval(interval);
+    interval = setInterval(()=>{
+        timeLeft--; updatePomodoro();
+        if (timeLeft<=0) {
+            if (phase==='work') { phase='break'; timeLeft=breakTime; alert('Break time!'); }
+            else { phase='work'; timeLeft=workTime; alert('Back to work!'); }
+        }
+    }, 1000);
+}
+function resetPomodoro() { clearInterval(interval); timeLeft=0; updatePomodoro(); }
+
+// ── MODE SWITCH ──
+function showTimer() {
+    document.getElementById('timerSection').style.display = 'block';
+    document.getElementById('pomodoroSection').style.display = 'none';
+    document.getElementById('btnTimer').classList.add('active');
+    document.getElementById('btnPomodoro').classList.remove('active');
+}
+function showPomodoro() {
+    document.getElementById('timerSection').style.display = 'none';
+    document.getElementById('pomodoroSection').style.display = 'block';
+    document.getElementById('btnPomodoro').classList.add('active');
+    document.getElementById('btnTimer').classList.remove('active');
+}
+</script>
+
+{% endblock %}
